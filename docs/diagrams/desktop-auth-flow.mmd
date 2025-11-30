@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant Desktop App
+    participant System Browser
+    participant Backend API
+    participant OS Credential Manager
+
+    Desktop App->>Desktop App: User clicks "Sign In"
+    Desktop App->>System Browser: Open: https://api.example.com/auth/desktop
+    System Browser->>Backend API: GET /auth/desktop
+    Backend API->>System Browser: Serve Login Form
+    System Browser->>System Browser: User enters email & password
+    System Browser->>Backend API: POST /auth/login (email, password)
+    Backend API->>Backend API: Validate credentials
+    Backend API->>Backend API: Generate Access Token (15 min)
+    Backend API->>Backend API: Generate Refresh Token (7 days)
+    Backend API->>System Browser: Redirect: tauri://auth/callback?access_token=XXX&refresh_token=YYY
+    System Browser->>Desktop App: Deep Link triggered with tokens
+    Desktop App->>OS Credential Manager: Store tokens securely
+    OS Credential Manager->>Desktop App: Tokens stored
+    Desktop App->>Desktop App: Emit auth_complete event
+    Desktop App->>Desktop App: Close browser (or user closes)
+    Desktop App->>Desktop App: Show "Successfully authenticated"
+    Desktop App->>Desktop App: Enable Sync functionality

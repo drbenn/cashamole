@@ -1,0 +1,38 @@
+graph TD
+    A["User visits Web/Desktop"] --> B{New or Existing?}
+    
+    B -->|New User| C["Click Register"]
+    B -->|Existing User| D["Click Login"]
+    
+    C --> E["Enter Email & Password"]
+    E --> F["Submit Registration"]
+    F --> G{Email Exists?}
+    G -->|Yes| H["Error: Email Already Registered"]
+    H --> C
+    G -->|No| I["Create User Account<br/>Hash Password<br/>Generate Confirmation Code"]
+    I --> J["Send Confirmation Email"]
+    J --> K["Show: Check Email Page<br/>Resend Button Available"]
+    K --> L{User Action?}
+    L -->|Click Link in Email| M["Confirmation Code Verified"]
+    L -->|Click Resend| J
+    M --> N["Account Confirmed<br/>Show Login Page"]
+    
+    D --> O["Enter Email & Password"]
+    O --> P["Submit Login"]
+    P --> Q{Account Exists?}
+    Q -->|No| R["Error: Invalid Email/Password"]
+    R --> D
+    Q -->|Yes| S{Email Confirmed?}
+    S -->|No| T["Show: Email Not Confirmed Page<br/>Resend Button Available"]
+    T --> U{User Action?}
+    U -->|Click Link in Email| M
+    U -->|Click Resend| J
+    S -->|Yes| V{Password Correct?}
+    V -->|No| R
+    V -->|Yes| W["Generate Access Token<br/>Generate Refresh Token"]
+    W --> X{Web or Desktop?}
+    X -->|Web| Y["Store Refresh Token<br/>in HttpOnly Cookie<br/>Store Access Token"]
+    X -->|Desktop| Z["Redirect to tauri://auth/callback<br/>with tokens"]
+    Y --> AA["Redirect to Dashboard"]
+    Z --> AB["Desktop App Captures Tokens<br/>Stores in OS Credential Manager"]
+    AB --> AC["Redirect to Desktop Dashboard"]

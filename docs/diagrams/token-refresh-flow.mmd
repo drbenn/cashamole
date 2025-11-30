@@ -1,0 +1,34 @@
+graph TD
+    A["Access Token Expires<br/>or Near Expiry"] --> B{Web or Desktop?}
+    
+    B -->|Web| C["Frontend detects expiry<br/>or 401 response"]
+    B -->|Desktop| D["App detects token expiry<br/>before request"]
+    
+    C --> E["Send POST /auth/refresh<br/>with Refresh Token<br/>from HttpOnly Cookie"]
+    D --> F["Send POST /auth/refresh<br/>with Refresh Token<br/>from Credential Manager"]
+    
+    E --> G{Refresh Token Valid?}
+    F --> G
+    
+    G -->|No| H["Refresh Token Expired<br/>or Invalid"]
+    H --> I{Web or Desktop?}
+    I -->|Web| J["Redirect to Login Page<br/>Show: Session Expired"]
+    I -->|Desktop| K["Clear tokens from<br/>Credential Manager<br/>Show: Re-authenticate"]
+    J --> L["User logs in again"]
+    K --> M["User clicks Sign In again"]
+    
+    G -->|Yes| N["Backend validates<br/>Refresh Token"]
+    N --> O["Generate new Access Token<br/>Generate new Refresh Token<br/>Invalidate old Refresh Token"]
+    O --> P{Web or Desktop?}
+    
+    P -->|Web| Q["Return new Access Token<br/>Set new Refresh Token<br/>in HttpOnly Cookie"]
+    P -->|Desktop| R["Return new Access Token<br/>Return new Refresh Token"]
+    
+    Q --> S["Frontend stores new<br/>Access Token"]
+    R --> T["Desktop stores new tokens<br/>in Credential Manager"]
+    
+    S --> U["Resume original request<br/>with new Access Token"]
+    T --> V["Resume original request<br/>with new Access Token"]
+    
+    U --> W["Request succeeds"]
+    V --> W

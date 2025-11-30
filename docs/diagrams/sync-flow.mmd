@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant Desktop App
+    participant Backend API
+    participant Web App
+    participant PostgreSQL
+
+    Desktop App->>Desktop App: User clicks "Sync Now"
+    Desktop App->>Desktop App: Read all transactions from SQLite<br/>modified since last sync
+    Desktop App->>Desktop App: Compare last_sync_timestamp<br/>with current timestamp
+    
+    Desktop App->>Backend API: POST /sync/desktop<br/>(access_token, desktop_changes, last_sync_timestamp)
+    
+    Backend API->>Backend API: Validate access token
+    Backend API->>PostgreSQL: Fetch user's data<br/>modified since last_sync
+    PostgreSQL->>Backend API: Return web_side_changes
+    
+    Backend API->>Backend API: Merge changes (bidirectional)
+    Backend API->>Backend API: For each transaction:<br/>- Check if modified on both sides<br/>- If yes: Last-write-wins (compare timestamps)<br/>- If desktop only: Add to web<br/>- If web only: Return to desktop
+    
+    Backend API->>Backend API: Detect conflicts<br/>- Same transaction modified<br/>- Different values
+    
+    Backend API->>PostgreSQL: Insert/Update desktop changes
+    PostgreSQL->>Backend API: Confirm
+    
+    Backend API->>Backend API: Generate sync report:<br/>- X uploaded<br/>- Y downloaded<br/>- Z conflicts detected
+    
+    Backend API->>Desktop App: Return sync_response<br/>(new_transactions, updated_transactions,<br/>conflicts, sync_timestamp)
+    
+    Desktop App->>Desktop App: Merge web-side changes<br/>into local SQLite
+    Desktop App->>Desktop App: Update last_sync_timestamp
+    Desktop App->>Desktop App: Show sync report to user:<br/>"5 uploaded, 3 downloaded,<br/>0 conflicts"
+    
+    Note over Web App: Web app syncs automatically<br/>on every action (real-time)
+    Web App->>Backend API: POST /transactions (new transaction)
+    Backend API->>PostgreSQL: Store transaction
+    PostgreSQL->>Backend API: Confirm
+    Backend API->>Web App: Return updated transaction
