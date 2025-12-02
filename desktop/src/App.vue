@@ -9,3 +9,20 @@
 </template>
 
 <style scoped></style>
+
+<!-- <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+</script>
+
+<template>
+  <div>
+    <div class="text-cyan-700 font-black text-8xl">
+      YO
+    </div>
+    <div>
+      <Button>Click me</Button>
+    </div>
+  </div>
+</template>
+
+<style scoped></style> -->
