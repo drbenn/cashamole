@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import NavBar from './components/custom/NavBar.vue';
 </script>
 
 <template>
@@ -10,6 +11,8 @@ import { Button } from '@/components/ui/button'
   </p>
 
     <div>
+      
+      <NavBar />
     <div class="text-cyan-700 font-black text-8xl">
       YO
     </div>

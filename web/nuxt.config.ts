@@ -6,8 +6,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['./app/assets/css/main.css'],
   modules: ['@nuxt/hints', '@nuxt/image', '@nuxt/eslint', 'shadcn-nuxt'],
-    alias: {
-    '@': './app'
+  alias: {
+    '@/': './app'
   },
   vite: {
     plugins: [
