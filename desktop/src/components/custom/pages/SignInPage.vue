@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Eye, EyeOff, Loader2, Menu } from 'lucide-vue-next'
+import { Box, Eye, EyeOff, Loader2, Menu } from 'lucide-vue-next'
 
 const form = ref({
   email: '',
@@ -52,7 +52,7 @@ const handleLogin = async () => {
       <div class="text-center mb-8">
         <div class="flex justify-center mb-4">
           <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-            <Cube class="w-6 h-6 text-white" />
+            <Box class="w-6 h-6 text-white" />
           </div>
         </div>
         <h1 class="text-3xl font-bold text-gray-900">Sign In</h1>

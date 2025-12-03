@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Github, Twitter, User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 
 const form = ref({
   fullName: '',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Menu, X } from 'lucide-vue-next'
+import { Box, Menu, X } from 'lucide-vue-next'
 
 const isOpen = ref(false)
 
@@ -9,15 +9,19 @@ const navigation = [
   { name: 'Features', href: '#' },
   { name: 'Pricing', href: '#' },
   { name: 'About', href: '#' },
+  { name: 'Sign In', href: '#' },
 ]
 </script>
 
 <template>
-  <section class="relative w-full flex items-center bg-white py-8 md:py-16 lg:py-24">
+  <section class="relative w-full flex items-center py-4 md:py-6 lg:py-10">
     <div class="container mx-auto px-4 md:px-6 lg:px-8">
       <nav class="flex items-center justify-between">
-        <div class="flex items-center">
-          <span class="text-2xl font-bold">Logo</span>
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+            <Box class="w-5 h-5 text-white" />
+          </div>
+          <span class="text-xl font-bold text-gray-900">Cashamole</span>
         </div>
 
         <!-- Desktop Navigation -->
@@ -30,7 +34,7 @@ const navigation = [
           >
             {{ item.name }}
           </a>
-          <Button>Sign In</Button>
+          <Button>Sign Up</Button>
         </div>
 
         <!-- Mobile Navigation Button -->

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import NavBar from './components/custom/NavBar.vue';
+import NavBar from './components/custom/shared/NavBar.vue';
 </script>
 
 <template>

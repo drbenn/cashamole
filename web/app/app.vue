@@ -1,22 +1,19 @@
 <script setup lang="ts">
 import NavBar from '@/components/custom/shared/NavBar.vue';
-import SignInPage from '@/components/custom/pages/SignInPage.vue';
-import RegisterPage from '@/components/custom/pages/RegisterPage.vue';
-
+import Footer from './components/custom/shared/Footer.vue';
 </script>
 
 <template>
-  <div>
-    <!-- <NuxtRouteAnnouncer />
-    <NuxtWelcome /> -->
-    <SignInPage />
-    <RegisterPage />
+  <div class="flex flex-col min-h-screen">
+    <!-- Navbar -->
     <NavBar />
-    <div class="text-cyan-700 font-black text-8xl">
-      YO!!!
-    </div>
-    <div>
-      <Button>Click me</Button>
-    </div>
+
+    <!-- Page Content (grows to fill space) -->
+    <main class="flex-1">
+      <NuxtPage />
+    </main>
+
+    <!-- Footer -->
+    <Footer />
   </div>
 </template>
