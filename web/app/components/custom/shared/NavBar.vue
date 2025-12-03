@@ -5,11 +5,14 @@ import { Box, Menu, X } from 'lucide-vue-next'
 const isOpen = ref(false)
 
 const navigation = [
-  { name: 'Home', href: '#' },
-  { name: 'Features', href: '#' },
-  { name: 'Pricing', href: '#' },
-  { name: 'About', href: '#' },
-  { name: 'Sign In', href: '#' },
+  { name: 'Home', to: '/' },
+  // { name: 'Features', href: '#' },
+  // { name: 'Pricing', href: '#' },
+  // { name: 'About', href: '#' },
+  { name: 'Forgot Pass', to: '/forgot-password' },
+  { name: 'Reset Pass', to: '/reset-password' },
+  { name: 'Verify Email', to: '/verify-email' },
+  { name: 'Sign In', to: '/sign-in' },
 ]
 </script>
 
@@ -26,15 +29,17 @@ const navigation = [
 
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center space-x-8">
-          <a
+          <NuxtLink
             v-for="item in navigation"
             :key="item.name"
-            :href="item.href"
+            :to="item.to"
             class="text-gray-600 hover:text-gray-900"
           >
             {{ item.name }}
-          </a>
-          <Button>Sign Up</Button>
+          </NuxtLink>
+          <NuxtLink to="/register-account">
+            <Button class="cursor-pointer">Sign Up</Button>
+          </NuxtLink>
         </div>
 
         <!-- Mobile Navigation Button -->
@@ -53,14 +58,14 @@ const navigation = [
       >
         <div class="container mx-auto px-4">
           <div class="flex flex-col space-y-4">
-            <a
+            <NuxtLink
               v-for="item in navigation"
               :key="item.name"
-              :href="item.href"
+              :to="item.to"
               class="text-gray-600 hover:text-gray-900"
             >
               {{ item.name }}
-            </a>
+            </NuxtLink>
             <Button class="w-full">Sign In</Button>
           </div>
         </div>

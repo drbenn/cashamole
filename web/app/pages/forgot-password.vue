@@ -45,7 +45,7 @@ const handleForgotPassword = async () => {
     <div class="w-full max-w-md">
       <!-- Header -->
       <div class="text-center mb-8 cursor-default">
-        <h1 class="text-4xl font-bold text-gray-900 mb-3">Reset password</h1>
+        <h1 class="text-4xl font-bold text-gray-900 mb-3">Forgot password?</h1>
         <p class="text-gray-600 leading-relaxed">
           Enter your email address and we'll send you instructions to reset your password.
         </p>

@@ -1,39 +1,9 @@
 <script setup lang="ts">
-import { Box, Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
+import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
 </script>
 
 <template>
   <div class="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
-    <!-- Navbar -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <!-- Logo -->
-          <div class="flex items-center gap-2">
-            <div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-              <Box class="w-5 h-5 text-white" />
-            </div>
-            <span class="text-xl font-bold text-gray-900">Cashamole</span>
-          </div>
-
-          <!-- Auth Links -->
-          <div class="flex items-center gap-4">
-            <NuxtLink
-              to="/login"
-              class="px-4 py-2 text-gray-900 font-medium hover:text-gray-600 transition-colors"
-            >
-              Sign In
-            </NuxtLink>
-            <NuxtLink
-              to="/register"
-              class="px-4 py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors"
-            >
-              Sign Up
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-    </nav>
 
     <!-- Hero Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
