@@ -10,10 +10,27 @@ import Footer from './components/custom/shared/Footer.vue';
 
     <!-- Page Content (grows to fill space) -->
     <main class="flex-1">
-      <NuxtPage />
+      <Transition name="fade" mode="out-in">
+        <NuxtPage />
+      </Transition>
     </main>
 
     <!-- Footer -->
     <Footer />
   </div>
 </template>
+
+<style>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.075s ease;
+}
+
+.fade-enter-from {
+  opacity: 0.1;
+}
+
+.fade-leave-to {
+  opacity: 0.1;
+}
+</style>
