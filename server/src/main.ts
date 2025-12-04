@@ -10,12 +10,13 @@ async function bootstrap() {
   // do not need to determineEnvFile path as envFilePath is passed to ConfigModule.forRoot() in AppModule.
   const configService = app.get(ConfigService);
 
-  // const port = configService.get<number>('APP_PORT') || 3000;
   // app.use(cookieParser());
     // We use require() here because it correctly resolves the middleware function 
   // from the CommonJS module, bypassing TypeScript module interop issues.
   app.use(require('cookie-parser')());
   const globalPrefix: string = configService.get<string>('URL_GLOBAL_PREFIX') ?? 'undefined-main-global-prefix';
+  console.log('globalPrefix: ', globalPrefix);
+  
   app.setGlobalPrefix(globalPrefix);
   // app.enableCors(),
   app.enableCors({
@@ -25,6 +26,7 @@ async function bootstrap() {
     allowedHeaders: 'Content-Type, Authorization',
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = configService.get<number>('APP_PORT') || 3080;
+  await app.listen(port ?? 3000);
 }
 bootstrap();

@@ -1,6 +1,7 @@
 export interface CreateUserDto {
   email: string,
-  password?: string,
+  provider: 'email',
+  password?: string
 }
 
 export interface LoginUserDto {
