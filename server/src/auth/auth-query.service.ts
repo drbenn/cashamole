@@ -16,19 +16,18 @@ export class AuthQueryService {
   // Inject the singleton Pool instance
   constructor(
     @Inject(PG_CONNECTION) private pgPool: Pool,
-    // @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
 
-  async findOneUser(id: number): Promise<any> {
+  async findUserByEmail(email: string): Promise<any> {
     try {
-      const result = await this.pgPool.query('SELECT id, email FROM users WHERE id = $1', [id]);
+      const result = await this.pgPool.query('SELECT email FROM users WHERE email = $1', [email]);
       return result.rows[0];
     } catch (error) {
-      // console.error('Database query error:', error);
-      // this.logger.log('warn', `Error: auth-query-service findOneUser: ${error}`);
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findOneUser: ${error}`);
       throw new Error('Error: auth-query-service findOneUser');
-      // throw new Error('findOneUser failed');
     }
   }
 
@@ -60,13 +59,11 @@ export class AuthQueryService {
     ];
 
     try {
-      const result = await this.pgPool.query(queryText, values);
+      const result = await this.pgPool.query(queryText, values);      
       return result.rows[0];
     } catch (error) {
-      // console.error('Database query error:', error);
-      // this.logger.log('warn', `Error: auth-query-service insertUser: ${error}`);
+      this.logger.log('warn', `Error: auth-query-service insertUser: ${error}`);
       throw new Error('Error: auth-query-service insertUser');
-      // throw new Error('findOneUser failed');
     }
   }
 }
