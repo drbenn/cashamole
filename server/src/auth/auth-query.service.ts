@@ -19,25 +19,50 @@ export class AuthQueryService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-
   async findUserByEmail(email: string): Promise<any> {
     try {
-      const result = await this.pgPool.query('SELECT email FROM users WHERE email = $1', [email]);
+      const result = await this.pgPool.query('SELECT * FROM users WHERE email = $1', [email]);
       return result.rows[0];
     } catch (error) {
       console.error('Database query error:', error);
-      this.logger.log('warn', `Error: auth-query-service findOneUser: ${error}`);
-      throw new Error('Error: auth-query-service findOneUser');
+      this.logger.log('warn', `Error: auth-query-service findUserByEmail: ${error}`);
+      throw new Error('Error: auth-query-service findUserByEmail');
+    }
+  }
+
+  async checkIsExistingEmail(email: string): Promise<any> {
+    try {
+      const result = await this.pgPool.query('SELECT email FROM users WHERE email = $1', [email]);
+      console.log('is exist email: ', result.rows[0]);
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service checkIsExistingEmail: ${error}`);
+      throw new Error('Error: auth-query-service checkIsExistingEmail');
+    }
+  }
+
+  async findUserPasswordByEmail(email: string): Promise<any> {
+    try {
+      const result = await this.pgPool.query('SELECT providers FROM users WHERE email = $1', [email]);
+      console.log('rizzult: ', result.rows[0].providers.email.password);
+      
+      return result.rows[0].providers.email.password
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findUserPasswordByEmail: ${error}`);
+      throw new Error('Error: auth-query-service findUserPasswordByEmail');
     }
   }
 
   async insertUser(user: CreateUserDto): Promise<any> {
     const refreshToken: string = '6a5s1dfasdf651'
-    const provider = user.provider
+    const providerKey: string = user.provider
 
-    const initialProviders = {
-      provider: {
-        provider: provider,
+    const initialProviders: Record<string, any> = {
+      [providerKey]: {
+        provider: providerKey,
         verified: false,
         verifiedAt: new Date().toISOString(), // Use current ISO timestamp
         password: user.password
@@ -64,6 +89,32 @@ export class AuthQueryService {
     } catch (error) {
       this.logger.log('warn', `Error: auth-query-service insertUser: ${error}`);
       throw new Error('Error: auth-query-service insertUser');
+    }
+  }
+
+  async insertRefreshTokenHash(
+    hashedRefreshToken: string,
+    userId: string,
+    expirationDate: Date
+  ): Promise<any> {
+
+    const queryText = `
+      INSERT INTO "user_refresh_tokens" (token_hash, user_id, expires_at)
+      VALUES ($1, $2, $3);
+    `;
+
+    const values = [
+      hashedRefreshToken,
+      userId,
+      expirationDate,
+    ];
+
+    try {
+      const result = await this.pgPool.query(queryText, values);      
+      return result.rows[0];
+    } catch (error) {
+      this.logger.log('warn', `Error: auth-query-service insertRefreshTokenHash: ${error}`);
+      throw new Error('Error: auth-query-service insertRefreshTokenHash');
     }
   }
 }

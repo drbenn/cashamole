@@ -14,9 +14,8 @@ psql -U $DB_USER -c "CREATE DATABASE $DB_NAME;"
 
 psql -U $DB_USER -d $DB_NAME -c "
 CREATE TABLE IF NOT EXISTS \"users\" (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    refresh_token VARCHAR(255),
     providers JSONB DEFAULT '{}'::jsonb,
     profiles JSONB DEFAULT '{}'::jsonb,
     settings JSONB DEFAULT '{}'::jsonb,
@@ -25,12 +24,27 @@ CREATE TABLE IF NOT EXISTS \"users\" (
 );
 
 CREATE TABLE IF NOT EXISTS \"password_resets\" (
-    id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id),
-    token VARCHAR(255) UNIQUE NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    reset_token VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS \"user_login_history\" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) NOT NULL ON DELETE CASCADE,
+    login_at TIMESTAMP DEFAULT NOW(),
+    ip_address INET NOT NULL,
+    type VARCHAR(20)
+);
+
+CREATE TABLE IF NOT EXISTS  \"user_refresh_tokens\" (
+    token_hash VARCHAR(255) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) NOT NULL  ON DELETE CASCADE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 "
 
