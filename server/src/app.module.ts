@@ -11,6 +11,7 @@ import * as winston from 'winston';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { EmailModule } from './email/email.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -27,8 +28,8 @@ import { EmailModule } from './email/email.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => [
         {
-          ttl: config.get<number>('THROTTLE_TIME_TO_LIVE'),
-          limit: config.get<number>('THROTTLE_LIMIT'),
+          ttl: config.get<number>('THROTTLE_TIME_TO_LIVE') ?? 60000,
+          limit: config.get<number>('THROTTLE_LIMIT') ?? 10,
         },
       ],
     }),
@@ -74,6 +75,7 @@ import { EmailModule } from './email/email.module';
     // additional module imports
     AuthModule,
     EmailModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -82,8 +84,9 @@ export class AppModule {}
 
 function determineEnvFilePath(): string[] {
   // return array with common envs + whatever environment is being ran
-  const envPaths: string[] = ['env/.common.env'];
-  const env = process.env.NODE_ENV || 'development';
+  // const envPaths: string[] = ['env/.common.env'];
+  const envPaths: string[] = [];
+  const env = process.env.NODE_ENV || 'development';  
   switch (env) {
     case 'development':
       envPaths.push('env/.development.local.env');
@@ -100,5 +103,6 @@ function determineEnvFilePath(): string[] {
     default:
       envPaths.push('env/.development.local.env');
   }
+
   return envPaths;
 }
