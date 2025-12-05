@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS password_resets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id),
-    token VARCHAR(255) UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reset_token VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT NOW()
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS password_resets (
 
 CREATE TABLE IF NOT EXISTS user_login_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) NOT NULL ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   login_at TIMESTAMP DEFAULT NOW(),
   ip_address INET NOT NULL,
   type VARCHAR(20)
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS user_login_history (
 
 CREATE TABLE IF NOT EXISTS  user_refresh_tokens (
   token_hash VARCHAR(255) PRIMARY KEY, -- Store the hash of the token, not the token itself, for security
-  user_id UUID REFERENCES users(id) NOT NULL  ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
