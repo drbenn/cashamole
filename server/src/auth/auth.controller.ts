@@ -1,7 +1,8 @@
 import * as CommonTypes from '@common-types';
-import { Body, Controller, Inject, Logger, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Inject, InternalServerErrorException, Logger, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import  type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -37,8 +38,9 @@ export class AuthController {
   ): Promise<any> {
     try {
       console.log('login dto: ', dto);
-      
-      return await this.authService.loginUser(dto);   
+      const login = await this.authService.loginUser(dto); 
+      this.sendLoginCookies(res, login.jwtAccessToken, login.jwtRefreshToken);
+      return login
     } catch (error: unknown) {
       this.logger.error(`Error during user login: ${error}`);
       // this.logger.error(`Error during standard registration registerStandardUserDto: ${JSON.stringify(createStandardUserDto)}`);
@@ -49,5 +51,51 @@ export class AuthController {
     };
   };
 
+  @Post('logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    try {
+      // 1. Clear the JWT and Refresh Token cookies
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict' as const,          // Use 'as const' for TypeScript literal type safety
+        path: '/',                            // Ensure the cookie is cleared from the root path
+      };
+
+      res.clearCookie('jwt', cookieOptions);
+      res.clearCookie('refresh_token', cookieOptions);
+
+      // 2. Return a successful, standardized response
+      return { 
+        statusCode: 200, 
+        message: 'Logged out successfully' 
+      };
+
+    } catch (error) {
+      this.logger.error(`Error during user logout: ${error}`);
+      
+      // 3. For an API endpoint, return an error status (e.g., 500) 
+      //    instead of redirecting. The frontend handles the redirect.
+      throw new InternalServerErrorException('Failed to log out due to a server error.');
+    }
+  }
+
+  private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {
+    const baseOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,          // Use 'as const' for TypeScript literal type safety
+      path: '/',                            // Ensure the cookie is cleared from the root path
+    };
+    res.cookie('jwt', jwtAccessToken, {
+      ...baseOptions,
+      maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),  // Expiration time, time stored in browser, not validity
+    });
+
+    res.cookie('refresh_token', jwtRefreshToken, {
+      ...baseOptions,
+      maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION),  // Expiration time
+    });
+  };
 
 }
