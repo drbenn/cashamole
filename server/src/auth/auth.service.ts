@@ -1,15 +1,10 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AuthQueryService } from './auth-query.service';
-import { CreateUserDto, LoginUserDto } from '@common-types';
+import { CreateUserDto, JwtPayload, LoginUserDto } from '@common-types';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
-
-type JwtPayload = {
-    sub: string; // Subject (User ID)
-    email: string;
-};
 
 @Injectable()
 export class AuthService {
@@ -31,16 +26,9 @@ export class AuthService {
     return await bcrypt.compare(plainString, storedHashedString);
   };
 
-
   async generateAccessJwt(userId: string, email: string): Promise<string> {
     const payload: JwtPayload = { sub: userId, email: email};
-
-    const expiresIn = process.env.JWT_REFRESH_TOKEN_EXPIRATION;
-    if (!expiresIn) {
-      // Use a sane fallback or throw an error if the Refresh token is critical
-      return this.jwtService.sign({ sub: userId, email: email}, { expiresIn: '7d' }); 
-    }
-    const jwtAccessToken = this.jwtService.sign(payload, { expiresIn: expiresIn });
+    const jwtAccessToken = this.jwtService.sign(payload, { expiresIn: '7d' });
     return jwtAccessToken;
   };
 
@@ -79,15 +67,16 @@ export class AuthService {
    */
   async loginUser(dto: LoginUserDto): Promise<any> {
     // 1. Find the user login record.
-    const user: any = await this.authQueryService.findUserPasswordByEmail(dto.email)
-
+    const user: any = await this.authQueryService.findUserByEmail(dto.email)
+    console.log('USER: ',user);
+    
     if (!user) {
       // Case 1: User is not registered via the standard method (404 Not Found)
       throw new NotFoundException(`User with email '${dto.email}' not found or not registered.`);
     }
 
     // 3. Compare the password.
-    const isMatch: boolean = await this.compareHashedString(dto.password, user.password);
+    const isMatch: boolean = await this.compareHashedString(dto.password, user.providers.email.password);
     console.log('isMatch: ', isMatch);
     
     
@@ -97,29 +86,23 @@ export class AuthService {
     }
     
     // --- SUCCESS PATH ---
-    // 4. If successful, generate tokens and build a success response (omitted token generation logic for brevity).
-    
-    // Placeholder for fetching user profile details needed for the response
-
-
-    console.log('user: ', user);
-    
-
+    // 4. If successful, generate tokens and build a success response
     const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
     const jwtRefreshToken = await this.generateRefreshJwt();
     
     // 5. Hash and persist the Refresh Token in the database.
     const hashedRefreshToken: string = await this.hashString(jwtRefreshToken);
-
-    // TODO: replace with JWT_REFRESH_TOKEN_EXPIRATION
-    // NOTE: You would calculate the expiration date from the token payload here.
-    const expirationDate: Date = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)); // Mock 7 days
+    const msInFuture: number = process.env.JWT_REFRESH_TOKEN_EXPIRATION ? Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION) : (7 * 24 * 60 * 60 * 1000)  // 7 days fallback
+    const expirationDate: Date = new Date(Date.now() + msInFuture); 
     
     await this.authQueryService.insertRefreshTokenHash(
-        hashedRefreshToken, 
-        user.id, 
-        expirationDate
+      hashedRefreshToken, 
+      user.id, 
+      expirationDate
     );
+
+    // 6. remove providers email hashed password from response
+    delete user.providers.email.password
 
     return {
       message: 'Login Success',

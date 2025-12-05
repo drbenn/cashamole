@@ -36,6 +36,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
     try {
+      console.log('login dto: ', dto);
+      
       return await this.authService.loginUser(dto);   
     } catch (error: unknown) {
       this.logger.error(`Error during user login: ${error}`);

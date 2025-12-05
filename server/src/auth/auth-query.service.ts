@@ -70,17 +70,16 @@ export class AuthQueryService {
     };
 
     const queryText = `
-      INSERT INTO "users" (email, refresh_token, providers, profiles, settings)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO "users" (email, providers, profiles, settings)
+      VALUES ($1, $2, $3, $4)
       RETURNING id, email, created_at;
     `;
 
     const values = [
       user.email,                               // $1: email (VARCHAR)
-      refreshToken,                             // $2: refresh_token (VARCHAR)
-      initialProviders,                         // $3: providers (JSONB object)
-      {},                                       // $4: profiles (empty object for JSONB)
-      {},                                       // $5: settings (empty object for JSONB)
+      initialProviders,                         // $2: providers (JSONB object)
+      {},                                       // $3: profiles (empty object for JSONB)
+      {},                                       // $4: settings (empty object for JSONB)
     ];
 
     try {

@@ -12,6 +12,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { EmailModule } from './email/email.module';
 import { DatabaseModule } from './database/database.module';
+import { TransactionModule } from './transaction/transaction.module';
+import { SnapshotModule } from './snapshot/snapshot.module';
 
 @Module({
   imports: [
@@ -76,6 +78,8 @@ import { DatabaseModule } from './database/database.module';
     AuthModule,
     EmailModule,
     DatabaseModule,
+    TransactionModule,
+    SnapshotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
