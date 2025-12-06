@@ -85,27 +85,39 @@ export class EmailService {
     }
   }
 
-  async sendConfirmationEmailForStandardLoginEmail(
-    recipientEmail: string,
-    confirmationLink: string,
-  ): Promise<{ messageId: string }> {
+  async sendAccountVerificationEmail(
+    userEmail: string,
+    confirmationCode: string,
+    verificationUrl: string,
+  ): Promise<any> {
     try {
+      
       const info = await this.mailerService.sendMail({
-        to: recipientEmail,
+        to: userEmail,
         from: process.env.BREVO_SENDER_EMAIL,
-        subject: `${process.env.BREVO_TEMPLATE_APP_NAME} Password Reset Request`,
-        text: `Hello, You registered an account with email and password login for ${process.env.BREVO_TEMPLATE_APP_NAME}. 
-              Go to ${confirmationLink} to confirm the new login. If you didn't recently register this login, you can 
-              safely ignore this email.`,
+        subject: `${process.env.BREVO_TEMPLATE_APP_NAME} Account Verification`,
+        text: `Hello and welcome to ${process.env.BREVO_TEMPLATE_APP_NAME}!.
+              Visit ${verificationUrl} and enter the code: ${confirmationCode} to verify your new account. 
+              If you did not register, you can safely ignore this email.
+              Thank You!
+              ${process.env.BREVO_TEMPLATE_APP_NAME} Team`,
         html: `
           <html>
             <body>
-              <p>Hello,</p>
-              <p>You registered an account with email and password login for ${process.env.BREVO_TEMPLATE_APP_NAME}. Click the link below to confirm your login creation:</p>
-              <p><a href="${confirmationLink}" target="_blank">Confirm Login: ${confirmationLink}</a></p>
-              <p>If you didn't recently register this login, you can safely ignore this email.</p>
+              <p>Hello and welcome to ${process.env.BREVO_TEMPLATE_APP_NAME}!</p>
+              <p>
+                Visit the link below and enter the following code to verify your account:
+              </p>
+              <p>
+                <h2>
+                  Confirmation Code: ${confirmationCode}
+                </h2>
               <br>
-              <p>Thanks,<br>Your ${process.env.BREVO_TEMPLATE_APP_NAME} Team</p>
+              <p>Confirm Login: <a href="${verificationUrl}" target="_blank">${verificationUrl}</a></p>
+              <br>
+              <p>If you did not recently register this login, you can safely ignore this email.</p>
+              <p>Thank you!</p>
+              <p>${process.env.BREVO_TEMPLATE_APP_NAME} Team</p>
             </body>
           </html>
         `,
@@ -114,7 +126,7 @@ export class EmailService {
     } catch (error) {
       this.logger.log(
         'warn',
-        `Error sending email in email service to standard user confirming login registration: ${error}`,
+        `Error sending email in email service to verify account registration: ${error}`,
       );
       throw new Error('Unable to send email');
     }

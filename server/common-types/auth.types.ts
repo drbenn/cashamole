@@ -9,6 +9,10 @@ export interface LoginUserDto {
   password: string,
 }
 
+export interface VerifyRegistrationDto {
+  code: string,
+}
+
 
 export type JwtPayload = {
     sub: string; // Subject (User ID)

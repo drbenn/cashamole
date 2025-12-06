@@ -1,10 +1,11 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AuthQueryService } from './auth-query.service';
-import { CreateUserDto, JwtPayload, LoginUserDto } from '@common-types';
+import { CreateUserDto, JwtPayload, LoginUserDto, VerifyRegistrationDto } from '@common-types';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +13,8 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly authQueryService: AuthQueryService,
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    private emailService: EmailService
   ) {}
 
 
@@ -39,10 +41,12 @@ export class AuthService {
     return hashedJwtRefreshToken;
   };
 
-  async registerUser(dto: CreateUserDto) {
+  private generateConfirmationCode(): string {
+    return (parseInt(randomBytes(3).toString('hex'), 16) % 900000 + 100000).toString();
+  }
 
+  async registerUser(dto: CreateUserDto) {
     const isUserEmailExisting: { email: string} | undefined = await this.authQueryService.checkIsExistingEmail(dto.email)
-    console.log('isUserEmailExisting: ', isUserEmailExisting);
 
     if (isUserEmailExisting) {
       this.logger.warn(`Registration Failed: cannot register existing user email: 
@@ -57,8 +61,85 @@ export class AuthService {
     }
     if (dto.password) dto.password = await this.hashString(dto.password)
 
-    return await this.authQueryService.insertUser(dto)
+    const accountCreated = await this.authQueryService.insertUser(dto)
+    
+    await this.sendAccountVerificationEmail(accountCreated.id, accountCreated.email)
+    
+    delete accountCreated.id
+
+    return accountCreated
   }
+
+  async sendAccountVerificationEmail(userId: string, userEmail: string): Promise<any> {
+    const confirmationCode: string = this.generateConfirmationCode()
+    const verificationUrl: string = `${process.env.FRONTEND_URL}/verify-email?code=${encodeURIComponent(confirmationCode)}`
+    const expiresAt: Date = new Date(Date.now() + 30 * 60 * 1000) // 30 min
+
+    try {
+      await this.authQueryService.insertEmailConfirmation(userId, confirmationCode, expiresAt)   
+    } catch (error: unknown) {
+      throw new ConflictException({
+        message: 'Account verification failed',
+        reason: 'Error inserting email confirmation record.'
+      });
+    }
+    
+    try {
+      const smtpEmailResponse =  await this.emailService.sendAccountVerificationEmail(userEmail, confirmationCode, verificationUrl)      
+    } catch (error: unknown) {
+      this.logger.log(
+        'warn',
+        `Error sending email in email service to verify account registration catch for sendAccountVerificationEmail(): ${error}`,
+      );
+      throw new ConflictException({
+        message: 'Account verification failed',
+        reason: 'Error sending email confirmation to user email.'
+      });
+    }
+
+    return { expiresAt: expiresAt }
+  }
+
+  async verifyAccount(dto: VerifyRegistrationDto) {
+
+    const confirmation = await this.authQueryService.findEmailConfirmation(dto.code)
+
+    const user = await this.authQueryService.findUserById(confirmation.user_id)
+
+    if (user.providers.email.verified) {
+      throw new ConflictException({
+        message: 'Account verification failed',
+        reason: 'User account already verified.'
+      });
+    }
+
+    console.log('confirm result: ', confirmation);
+    if (!confirmation) {
+      throw new ConflictException({
+        message: 'Account verification failed',
+        reason: 'Incorrect account verification code submitted.'
+      });
+    }
+
+    if (confirmation.used_at) {
+      throw new ConflictException({
+        message: 'Account verification failed',
+        reason: 'Verification previously completed.'
+      });
+    }
+    
+    if (new Date(confirmation.expires_at) < new Date()) {
+      throw new ConflictException({
+        message: 'Account verification failed',
+        reason: 'Verification stale. User must verify account registration within 30 minutes of registering account.'
+      });
+    }
+
+    const markConfirmationUsed = await this.authQueryService.markEmailConfirmationUsed(confirmation.id)
+
+  }
+
+
 
 
   /**

@@ -30,6 +30,17 @@ export class AuthQueryService {
     }
   }
 
+  async findUserById(userId: string): Promise<any> {
+    try {
+      const result = await this.pgPool.query('SELECT * FROM users WHERE id = $1', [userId]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findUserById: ${error}`);
+      throw new Error('Error: auth-query-service findUserById');
+    }
+  }
+
   async checkIsExistingEmail(email: string): Promise<any> {
     try {
       const result = await this.pgPool.query('SELECT email FROM users WHERE email = $1', [email]);
@@ -88,6 +99,55 @@ export class AuthQueryService {
     } catch (error) {
       this.logger.log('warn', `Error: auth-query-service insertUser: ${error}`);
       throw new Error('Error: auth-query-service insertUser');
+    }
+  }
+
+  async insertEmailConfirmation(
+    userId: string,
+    verificationCode: string,
+    expiresAt: Date
+  ): Promise<any> {
+    const queryText = `
+      INSERT INTO "email_confirmations" (user_id, code, expires_at)
+      VALUES ($1, $2, $3)
+      RETURNING id;
+    `;
+
+    const values = [
+      userId,
+      verificationCode,
+      expiresAt
+    ];
+
+    try {
+      const result = await this.pgPool.query(queryText, values);   
+      console.log(result);
+      return result.rows[0];
+    } catch (error) {
+      this.logger.log('warn', `Error: auth-query-service insertEmailConfirmation: ${error}`);
+      throw new Error('Error: auth-query-service insertEmailConfirmation');
+    }
+  }
+
+  async findEmailConfirmation(code: string) {
+    try {
+      const result = await this.pgPool.query('SELECT * FROM email_confirmations WHERE code = $1', [code]);
+      return result.rows[0]
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findEmailConfirmation: ${error}`);
+      throw new Error('Error: auth-query-service findEmailConfirmation');
+    }
+  }
+
+  async markEmailConfirmationUsed(code: string) {
+    try {
+      const result = await this.pgPool.query('Update used_at FROM email_confirmations', [new Date()]);
+      return result.rows[0]
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findEmailConfirmation: ${error}`);
+      throw new Error('Error: auth-query-service findEmailConfirmation');
     }
   }
 
