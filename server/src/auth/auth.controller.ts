@@ -19,16 +19,7 @@ export class AuthController {
     @Req() req: Request,                          // req for capturing and logging ip
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
-    try {
-      return await this.authService.registerUser(dto);   
-    } catch (error: unknown) {
-      this.logger.error(`Error during user registration: ${error}`);
-      // this.logger.error(`Error during standard registration registerStandardUserDto: ${JSON.stringify(createStandardUserDto)}`);
-      // const errorRegisterResponseMessage: AuthResponseMessageDto = {
-      //   message: AuthMessages.STANDARD_REGISTRATION_ERROR
-      // };
-      return error;
-    };
+    return await this.authService.registerUser(dto);
   };
 
   @Post('login')
@@ -37,19 +28,9 @@ export class AuthController {
     @Req() req: Request,                          // req for capturing and logging ip
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
-    try {
-      console.log('login dto: ', dto);
       const login = await this.authService.loginUser(dto); 
       this.sendLoginCookies(res, login.jwtAccessToken, login.jwtRefreshToken);
       return login
-    } catch (error: unknown) {
-      this.logger.error(`Error during user login: ${error}`);
-      // this.logger.error(`Error during standard registration registerStandardUserDto: ${JSON.stringify(createStandardUserDto)}`);
-      // const errorRegisterResponseMessage: AuthResponseMessageDto = {
-      //   message: AuthMessages.STANDARD_REGISTRATION_ERROR
-      // };
-      return error;
-    };
   };
 
   private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {
@@ -72,40 +53,35 @@ export class AuthController {
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    try {
-      // 1. Clear the JWT and Refresh Token cookies
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict' as const,          // Use 'as const' for TypeScript literal type safety
-        path: '/',                            // Ensure the cookie is cleared from the root path
-      };
+    // 1. Clear the JWT and Refresh Token cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,          // Use 'as const' for TypeScript literal type safety
+      path: '/',                            // Ensure the cookie is cleared from the root path
+    };
 
-      res.clearCookie('jwt', cookieOptions);
-      res.clearCookie('refresh_token', cookieOptions);
+    res.clearCookie('jwt', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
 
-      // 2. Return a successful, standardized response
-      return { 
-        statusCode: 200, 
-        message: 'Logged out successfully' 
-      };
-
-    } catch (error) {
-      this.logger.error(`Error during user logout: ${error}`);
-      
-      // 3. For an API endpoint, return an error status (e.g., 500) 
-      //    instead of redirecting. The frontend handles the redirect.
-      throw new InternalServerErrorException('Failed to log out due to a server error.');
-    }
+    // 2. Return a successful, standardized response
+    return { 
+      statusCode: 200, 
+      message: 'Logged out successfully' 
+    };
   }
 
   @Post('verify-email')
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 }}) // 5 attempts per min
+  // @UseGuards(ThrottlerGuard)
+  // @Throttle({ default: { limit: 5, ttl: 60000 }}) // 5 attempts per min
   async verifyEmail(
     @Body() dto: CommonTypes.VerifyRegistrationDto 
   ) {
-    await this.authService.verifyAccount(dto)
+    const user = await this.authService.verifyAccount(dto)
+    return { 
+      message: 'Account verified successfully!',
+      user: user
+    }
   }
 
 

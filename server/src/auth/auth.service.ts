@@ -73,7 +73,7 @@ export class AuthService {
   async sendAccountVerificationEmail(userId: string, userEmail: string): Promise<any> {
     const confirmationCode: string = this.generateConfirmationCode()
     const verificationUrl: string = `${process.env.FRONTEND_URL}/verify-email?code=${encodeURIComponent(confirmationCode)}`
-    const expiresAt: Date = new Date(Date.now() + 30 * 60 * 1000) // 30 min
+    const expiresAt: Date = new Date(Date.now() + 60 * 60 * 1000) // 60 min
 
     try {
       await this.authQueryService.insertEmailConfirmation(userId, confirmationCode, expiresAt)   
@@ -101,19 +101,8 @@ export class AuthService {
   }
 
   async verifyAccount(dto: VerifyRegistrationDto) {
-
     const confirmation = await this.authQueryService.findEmailConfirmation(dto.code)
 
-    const user = await this.authQueryService.findUserById(confirmation.user_id)
-
-    if (user.providers.email.verified) {
-      throw new ConflictException({
-        message: 'Account verification failed',
-        reason: 'User account already verified.'
-      });
-    }
-
-    console.log('confirm result: ', confirmation);
     if (!confirmation) {
       throw new ConflictException({
         message: 'Account verification failed',
@@ -135,8 +124,8 @@ export class AuthService {
       });
     }
 
-    const markConfirmationUsed = await this.authQueryService.markEmailConfirmationUsed(confirmation.id)
-
+    const userAsSuccessfulResponse = await this.authQueryService.updateEmailConfirmationUsedAndVerifyUser(confirmation.id)
+    return userAsSuccessfulResponse
   }
 
 
@@ -149,7 +138,6 @@ export class AuthService {
   async loginUser(dto: LoginUserDto): Promise<any> {
     // 1. Find the user login record.
     const user: any = await this.authQueryService.findUserByEmail(dto.email)
-    console.log('USER: ',user);
     
     if (!user) {
       // Case 1: User is not registered via the standard method (404 Not Found)
@@ -158,8 +146,6 @@ export class AuthService {
 
     // 3. Compare the password.
     const isMatch: boolean = await this.compareHashedString(dto.password, user.providers.email.password);
-    console.log('isMatch: ', isMatch);
-    
     
     if (!isMatch) {
       // Case 3: Password mismatch (401 Unauthorized)

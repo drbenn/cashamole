@@ -1,5 +1,5 @@
 import { CreateUserDto } from '@common-types';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Pool } from 'pg';
 import { PG_CONNECTION } from 'src/database/database.constants';
@@ -44,8 +44,6 @@ export class AuthQueryService {
   async checkIsExistingEmail(email: string): Promise<any> {
     try {
       const result = await this.pgPool.query('SELECT email FROM users WHERE email = $1', [email]);
-      console.log('is exist email: ', result.rows[0]);
-      
       return result.rows[0];
     } catch (error) {
       console.error('Database query error:', error);
@@ -57,8 +55,6 @@ export class AuthQueryService {
   async findUserPasswordByEmail(email: string): Promise<any> {
     try {
       const result = await this.pgPool.query('SELECT providers FROM users WHERE email = $1', [email]);
-      console.log('rizzult: ', result.rows[0].providers.email.password);
-      
       return result.rows[0].providers.email.password
     } catch (error) {
       console.error('Database query error:', error);
@@ -121,8 +117,8 @@ export class AuthQueryService {
 
     try {
       const result = await this.pgPool.query(queryText, values);   
-      console.log(result);
-      return result.rows[0];
+      const emailConfirmationId: string = result.rows[0].id
+      return emailConfirmationId
     } catch (error) {
       this.logger.log('warn', `Error: auth-query-service insertEmailConfirmation: ${error}`);
       throw new Error('Error: auth-query-service insertEmailConfirmation');
@@ -140,14 +136,96 @@ export class AuthQueryService {
     }
   }
 
-  async markEmailConfirmationUsed(code: string) {
+  // must use transaction to perform both update email_confirmation and users table, both updates must succeed or none update
+  async updateEmailConfirmationUsedAndVerifyUser(confirmationId: string) {
+    const now = new Date();
+    const usedAtTimestamp = now.toISOString();
+
+    // Get a client from the pool to manage the transaction
+    const client = await this.pgPool.connect();
     try {
-      const result = await this.pgPool.query('Update used_at FROM email_confirmations', [new Date()]);
-      return result.rows[0]
+      await client.query('BEGIN'); // START THE TRANSACTION
+      
+      // --- QUERY 1: UPDATE email_confirmations (Mark as used) ---
+      const confirmationUsedAtUpdateResult = await client.query(
+        `UPDATE "email_confirmations" 
+        SET used_at = $1 
+        WHERE id = $2 AND used_at IS NULL RETURNING user_id`,
+        [usedAtTimestamp, confirmationId]);        
+        
+      if (confirmationUsedAtUpdateResult.rowCount === 0) {
+        // If no row was updated, the code was invalid, expired, or already used.
+        // We must rollback before throwing an error.
+        await client.query('ROLLBACK');
+        this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: Database failed to mark email as confirmed.`);
+        throw new ConflictException({
+          message: 'Account verification failed',
+          reason: 'Verification not confirmed. Database failed to mark email as confirmed.'
+        });
+      }
+
+      const userId = confirmationUsedAtUpdateResult.rows[0].user_id
+
+      // --- QUERY 2: Check to see if user account has already been verified ---
+      const IsUserVerfiedResult = await client.query(
+        `SELECT id
+        FROM users
+        WHERE id = $1
+        AND providers -> 'email' ->> 'verified' = 'true';`,
+        [userId]
+      )
+
+      if (IsUserVerfiedResult.rowCount !== 0) {
+        await client.query('ROLLBACK')
+        this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: User account already verified.`);
+        throw new ConflictException({
+          message: 'Account verification failed',
+          reason: 'User account already verified.'
+        });
+      }
+
+      // --- QUERY 3: UPDATE users (Set verified status) ---
+      // We use the JSONB operator || (concatenation) to merge a new value deep into the object
+      const userUpdateResult = await client.query(
+        `UPDATE "users" 
+        SET providers = jsonb_set(
+          providers,                                       -- The JSONB column to update
+          '{email, verified}',                             -- The path to the key (['email', 'verified'])
+          'true'::jsonb,                                   -- The new value, cast to jsonb
+          true                                             -- The create_missing flag (true = create keys if they don't exist)
+        ),
+        updated_at = $1
+        WHERE id = $2
+        RETURNING *`,
+        [usedAtTimestamp, userId]
+      );
+
+      if (userUpdateResult.rowCount === 0) {
+        // Highly unlikely to fail if the user was found earlier, but good for atomicity
+        await client.query('ROLLBACK');
+        this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: User verified status not updated.`);
+        throw new ConflictException({
+          message: 'Account verification failed',
+          reason: 'User verified status not updated.'
+        });
+      }
+
+      const user = userUpdateResult.rows[0]
+      delete user.providers.email.password
+
+      // COMMIT Transaction and update all records simultaneously
+      await client.query('COMMIT');
+
+      return user
+
     } catch (error) {
       console.error('Database query error:', error);
-      this.logger.log('warn', `Error: auth-query-service findEmailConfirmation: ${error}`);
-      throw new Error('Error: auth-query-service findEmailConfirmation');
+      this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: ${error}`);
+      await client.query('ROLLBACK');
+      throw new Error('Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser');
+    } finally {
+      // IMPORTANT: Release the client back to the pool from transaction
+      client.release();
     }
   }
 
