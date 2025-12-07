@@ -14,8 +14,7 @@ export default defineNuxtConfig({
   ],
   alias: {
     '@/': './app',
-    "@common-types": "../server/common-types",
-    "@common-types/*": "../server/common-types/*"
+    '@common-types': new URL('../server/common-types', import.meta.url).pathname
   },
   vite: {
     plugins: [

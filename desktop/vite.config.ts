@@ -1,10 +1,13 @@
-import { fileURLToPath, URL } from 'node:url'
+// import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
+
+console.log('__dirname:', __dirname)
+console.log('resolved path:', path.resolve(__dirname, '../server/common-types'))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -17,6 +20,7 @@ export default defineConfig({
     alias: {
       // '@': fileURLToPath(new URL('./src', import.meta.url))
       '@': path.resolve(__dirname, './src'),
+      '@common-types': path.resolve(__dirname, '../server/common-types')
     },
   },
   // Tauri expects a fixed port in development

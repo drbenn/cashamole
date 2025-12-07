@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import NavBar from './components/custom/shared/NavBar.vue';
+// import { CreateUserDto } from '@common-types'
+// import type { CreateUserDto } from '../../server/common-types'
+import type { CreateUserDto } from '@common-types/index'
+
+
+const user: CreateUserDto = {
+  email: '',
+  provider: 'email'
+}
+console.log(user);
+
 </script>
 
 <template>

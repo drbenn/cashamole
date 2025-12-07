@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
 import { useUserStore } from '~/stores/userStore';
+// import {CreateUserDto} from '../../../server/common-types/index'
+import type { CreateUserDto, VerifyRegistrationDto } from '@common-types'
 
 
 // const appStore = useAppStore();
 const userStore = useUserStore();
 
-// const junk: CreateUserDto = ''
-// console.log(junk);
+const junk: CreateUserDto = {
+  email: 'asdf',
+  password: 'asdfasf',
+  provider: 'email'
+}
+console.log(junk);
+
+const j: VerifyRegistrationDto  ={'code': ''}
 
 </script>
 

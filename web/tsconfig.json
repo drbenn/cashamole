@@ -1,10 +1,10 @@
 {
-  "extends": "../tsconfig.base.json",
   // https://nuxt.com/docs/guide/concepts/typescript
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./app/*"],
+      // "@common-types/*": ["../server/common-types/*"]
     }
   },
   "files": [],
