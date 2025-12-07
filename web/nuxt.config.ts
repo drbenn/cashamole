@@ -13,7 +13,9 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
   ],
   alias: {
-    '@/': './app'
+    '@/': './app',
+    "@common-types": "../server/common-types",
+    "@common-types/*": "../server/common-types/*"
   },
   vite: {
     plugins: [

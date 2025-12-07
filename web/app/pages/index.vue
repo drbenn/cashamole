@@ -2,9 +2,12 @@
 import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
 import { useUserStore } from '~/stores/userStore';
 
+
 // const appStore = useAppStore();
 const userStore = useUserStore();
 
+// const junk: CreateUserDto = ''
+// console.log(junk);
 
 </script>
 
