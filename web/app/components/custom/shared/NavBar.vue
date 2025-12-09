@@ -1,19 +1,38 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Box, Menu, X } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia';
 
 const isOpen = ref(false)
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
+const { logout } = useUserStore()
 
-const navigation = [
-  { name: 'Home', to: '/' },
-  // { name: 'Features', href: '#' },
-  // { name: 'Pricing', href: '#' },
-  // { name: 'About', href: '#' },
-  { name: 'Forgot Pass', to: '/forgot-password' },
-  { name: 'Reset Pass', to: '/reset-password' },
-  { name: 'Verify Email', to: '/verify-email' },
-  { name: 'Sign In', to: '/sign-in' },
+const allNavigation = [
+  { name: 'Home', to: '/', auth: 'always' },
+  { name: 'Forgot Pass', to: '/forgot-password', auth: 'loggedOut' },
+  { name: 'Reset Pass', to: '/reset-password', auth: 'loggedOut' },
+  { name: 'Verify Email', to: '/register/verify-email', auth: 'loggedOut' },
+  { name: 'Sign In', to: '/sign-in', auth: 'loggedOut' },
+  // { name: 'Sign Out', to: '/sign-in', auth: 'loggedIn' }, 
 ]
+
+const filteredNavigation = computed(() => {
+  return allNavigation.filter((item) => {
+    if (item.auth === 'always' || !item.auth) {
+      return true
+    } else if (item.auth === 'loggedIn') {
+      return isLoggedIn.value
+    } else if (item.auth === 'loggedOut') {
+      return !isLoggedIn.value
+    } 
+    return false
+  })
+})
+
+const handleLogout = () => {
+  logout()
+}
 </script>
 
 <template>
@@ -30,16 +49,17 @@ const navigation = [
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center space-x-8">
           <NuxtLink
-            v-for="item in navigation"
+            v-for="item in filteredNavigation"
             :key="item.name"
             :to="item.to"
             class="text-gray-600 hover:text-gray-900"
           >
             {{ item.name }}
           </NuxtLink>
-          <NuxtLink to="/register-account">
+          <NuxtLink v-if="!isLoggedIn" to="/register">
             <Button class="cursor-pointer">Sign Up</Button>
           </NuxtLink>
+          <Button v-if="isLoggedIn" class="cursor-pointer" @click="handleLogout()">Sign Out</Button>
         </div>
 
         <!-- Mobile Navigation Button -->
@@ -59,14 +79,17 @@ const navigation = [
         <div class="container mx-auto px-4">
           <div class="flex flex-col space-y-4">
             <NuxtLink
-              v-for="item in navigation"
+              v-for="item in filteredNavigation"
               :key="item.name"
               :to="item.to"
               class="text-gray-600 hover:text-gray-900"
             >
               {{ item.name }}
             </NuxtLink>
-            <Button class="w-full">Sign In</Button>
+            <NuxtLink v-if="!isLoggedIn" to="/register">
+              <Button class="cursor-pointer">Sign Up</Button>
+            </NuxtLink>
+            <Button v-if="isLoggedIn" class="cursor-pointer" @click="handleLogout()">Sign Out</Button>
           </div>
         </div>
       </div>

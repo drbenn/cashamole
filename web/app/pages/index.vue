@@ -1,21 +1,34 @@
 <script setup lang="ts">
 import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
 import { useUserStore } from '~/stores/userStore';
-// import {CreateUserDto} from '../../../server/common-types/index'
-import type { CreateUserDto, VerifyRegistrationDto } from '@common-types'
 
-
-// const appStore = useAppStore();
+const appStore = useAppStore();
 const userStore = useUserStore();
 
-const junk: CreateUserDto = {
-  email: 'asdf',
-  password: 'asdfasf',
-  provider: 'email'
+const showToast = () => {
+  appStore.showToast({
+    message: 'Show basic toast!',
+    description: 'Basic toast blahhhhh',
+    position: 'bottom-center' // Applies the custom purple style defined in main.css
+  });
 }
-console.log(junk);
 
-const j: VerifyRegistrationDto  ={'code': ''}
+const showCToast = () => {
+  appStore.showToast({
+    message: 'Show custom toast!',
+    description: 'Custom toast blahhhhh',
+    class: 'my-custom-toast', // Applies the custom purple style defined in main.css
+    position: 'top-right'
+  });
+}
+
+const showVToast = () => {
+  appStore.showToast({
+    message: 'Welcome VIP User!',
+    description: 'You unlocked a secret discount.',
+    class: 'vip-toast' // Applies the custom purple style defined in main.css
+  });
+}
 
 </script>
 
@@ -53,6 +66,16 @@ const j: VerifyRegistrationDto  ={'code': ''}
         </div>
       </div>
     </div>
+
+    <button v-on:click="showToast()">
+      Show Toast
+    </button>
+    <button v-on:click="showCToast()">
+      Show Custom Toast
+    </button>
+    <button v-on:click="showVToast()">
+      Show VIP Toast
+    </button>
 
     <!-- Features Section -->
     <div class="bg-white py-16">

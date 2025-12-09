@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AuthQueryService } from './auth-query.service';
-import { CreateUserDto, JwtPayload, LoginUserDto, VerifyRegistrationDto } from '@common-types';
+import { CreateUserDto, JwtPayload, LoginUserDto, RequestNewVerificationDto, VerifyRegistrationDto } from '@common-types';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
@@ -53,10 +53,10 @@ export class AuthService {
         ${JSON.stringify(dto.email)}`);
 
       throw new ConflictException({
-        message: 'Registration Failed',
+        message: 'Registration Failed: Email has already been submitted for registration process.',
         email: dto.email,
         provider: dto.provider,
-        reason: 'User already registered with this provider type.'
+        // reason: 'User already registered with this provider type.'
       });
     }
     if (dto.password) dto.password = await this.hashString(dto.password)
@@ -72,15 +72,15 @@ export class AuthService {
 
   async sendAccountVerificationEmail(userId: string, userEmail: string): Promise<any> {
     const confirmationCode: string = this.generateConfirmationCode()
-    const verificationUrl: string = `${process.env.FRONTEND_URL}/verify-email?code=${encodeURIComponent(confirmationCode)}`
+    const verificationUrl: string = `${process.env.FRONTEND_URL}/register/verify-email?email=${userEmail}&code=${encodeURIComponent(confirmationCode)}`
     const expiresAt: Date = new Date(Date.now() + 60 * 60 * 1000) // 60 min
 
     try {
       await this.authQueryService.insertEmailConfirmation(userId, confirmationCode, expiresAt)   
     } catch (error: unknown) {
       throw new ConflictException({
-        message: 'Account verification failed',
-        reason: 'Error inserting email confirmation record.'
+        message: 'Account verification failed: Error adding email confirmation record.',
+        // reason: 'Error inserting email confirmation record.'
       });
     }
     
@@ -92,12 +92,17 @@ export class AuthService {
         `Error sending email in email service to verify account registration catch for sendAccountVerificationEmail(): ${error}`,
       );
       throw new ConflictException({
-        message: 'Account verification failed',
-        reason: 'Error sending email confirmation to user email.'
+        message: 'Account verification failed: Error sending email confirmation to user email.',
+        // reason: 'Error sending email confirmation to user email.'
       });
     }
 
     return { expiresAt: expiresAt }
+  }
+
+  async requestNewVerificationCode(dto: RequestNewVerificationDto): Promise<any> {
+    const userId: string = await this.authQueryService.findUserIdByEmail(dto.email)
+    await this.sendAccountVerificationEmail(userId, dto.email)
   }
 
   async verifyAccount(dto: VerifyRegistrationDto) {
@@ -105,22 +110,22 @@ export class AuthService {
 
     if (!confirmation) {
       throw new ConflictException({
-        message: 'Account verification failed',
-        reason: 'Incorrect account verification code submitted.'
+        message: 'Account verification failed: Incorrect account verification code submitted.',
+        // reason: 'Incorrect account verification code submitted.'
       });
     }
 
     if (confirmation.used_at) {
       throw new ConflictException({
-        message: 'Account verification failed',
-        reason: 'Verification previously completed.'
+        message: 'Account verification failed: Verification previously completed.',
+        // reason: 'Verification previously completed.'
       });
     }
     
     if (new Date(confirmation.expires_at) < new Date()) {
       throw new ConflictException({
-        message: 'Account verification failed',
-        reason: 'Verification stale. User must verify account registration within 30 minutes of registering account.'
+        message: 'Account verification failed: Verification stale. User must verify account registration within 60 minutes of registering account.',
+        // reason: 'Verification stale. User must verify account registration within 60 minutes of registering account.'
       });
     }
 

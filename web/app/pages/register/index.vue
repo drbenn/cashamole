@@ -1,20 +1,69 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { z } from 'zod'
+import { useAuthService } from '~/services/useAuthService'
+import type { CreateUserDto } from '@common-types'
+import type { ApiResponse } from '~/types/app.types'
+import { Button } from '@/components/ui/button'
 
 const form = ref({
-  fullName: '',
   email: '',
   password: '',
   confirmPassword: '',
 })
 
+const emailSchema = z.string().email()
+const emailError = ref('')
+const passwordError = ref('')
+
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
+const registrationErrorMessage = ref('')
+
+const { register } = useAuthService()
+
+// non-computed function required for @blur
+const validateEmail = () => {
+  try {
+    emailSchema.parse(form.value.email)
+    emailError.value = ''
+  } catch (err: unknown) {
+    const error = err as Record<string, any>
+    emailError.value = error?.errors?.[0]?.message || 'Invalid email'
+  }
+}
+
+const validatePassword = () => {
+  if (form.value.password && form.value.confirmPassword && form.value.password !== form.value.confirmPassword) {
+    passwordError.value = 'Passwords must match.'
+  } else if (form.value.password && form.value.confirmPassword && form.value.password === form.value.confirmPassword && form.value.password.length < 8) {
+    passwordError.value = 'Password must be at least 8 characters long.'
+  } else if (form.value.password && form.value.confirmPassword && form.value.password === form.value.confirmPassword && form.value.password.length > 8) {
+    passwordError.value = ''
+  }
+}
+
+const isEmailValid = computed((): boolean => {
+  try {
+    emailSchema.parse(form.value.email)
+    return true
+  } catch {
+    return false
+  }
+})
+
+const isPasswordValid = computed((): boolean => {
+  return form.value.password === form.value.confirmPassword && form.value.password.length >= 8
+})
+
+const isFormValid = computed((): boolean => {
+  return isPasswordValid.value && isEmailValid.value
+})
 
 const handleRegister = async () => {
-  if (!form.value.fullName || !form.value.email || !form.value.password || !form.value.confirmPassword) {
+  if (!form.value.email || !form.value.password || !form.value.confirmPassword) {
     console.error('All fields are required')
     return
   }
@@ -32,28 +81,32 @@ const handleRegister = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Call backend registration endpoint
-    // const response = await $fetch('/api/auth/register', {
-    //   method: 'POST',
-    //   body: {
-    //     fullName: form.value.fullName,
-    //     email: form.value.email,
-    //     password: form.value.password,
-    //   },
-    // })
-
-    // TODO: Redirect to email confirmation page
-    // await navigateTo('/verify-email')
-
-    console.log('Registration attempt:', {
-      fullName: form.value.fullName,
+    const dto: CreateUserDto = {
       email: form.value.email,
-    })
+      provider: 'email',
+      password: form.value.password
+    }
+
     // Simulated success
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log('Registration successful!')
-  } catch (error) {
+    const response: ApiResponse = await register(dto)
+    console.log('resss: ', response);
+    if (response.data) {
+      navigateTo({
+        path: '/register/success',
+        query: {
+          email: response.data.email,
+          created_at: response.data.created_at
+        }
+      })
+    }
+    else if (response.error) {
+      registrationErrorMessage.value = response.error
+    }
+    
+    // console.log('Registration successful!')
+  } catch (error: unknown) {
     console.error('Registration error:', error)
+    registrationErrorMessage.value = 'Registration Failed: API Error'
   } finally {
     isLoading.value = false
   }
@@ -108,23 +161,6 @@ const handleRegister = async () => {
 
         <!-- Registration Form -->
         <form class="space-y-4" @submit.prevent="handleRegister">
-          <!-- Full Name Field -->
-          <div class="space-y-2">
-            <label for="fullName" class="block text-sm font-medium text-gray-900">
-              Full Name
-            </label>
-            <div class="relative">
-              <User class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                id="fullName"
-                v-model="form.fullName"
-                type="text"
-                placeholder="John Doe"
-                class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
-                required
-              >
-            </div>
-          </div>
 
           <!-- Email Field -->
           <div class="space-y-2">
@@ -137,11 +173,13 @@ const handleRegister = async () => {
                 id="email"
                 v-model="form.email"
                 type="email"
-                placeholder="john@email.com"
+                placeholder="bernie@email.com"
                 class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
                 required
+                @blur="validateEmail"
               >
             </div>
+            <span v-if="emailError" class="text-red-700">{{ emailError }}</span>
           </div>
 
           <!-- Password Field -->
@@ -184,23 +222,26 @@ const handleRegister = async () => {
                 placeholder="••••••••"
                 class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
                 required
+                @blur="validatePassword"
               >
-              <button
+              <Button
                 type="button"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
                 <Eye v-if="showConfirmPassword" class="w-5 h-5" />
                 <EyeOff v-else class="w-5 h-5" />
-              </button>
+              </Button>
             </div>
+            <span v-if="passwordError" class="text-red-700">{{ passwordError }}</span>
+            <span v-if="registrationErrorMessage" class="text-red-700">Registration Failed: {{ registrationErrorMessage }}</span>
           </div>
 
           <!-- Create Account Button -->
           <button
             type="submit"
-            :disabled="isLoading"
-            class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6 cursor-pointer"
+            :disabled="isLoading || !isFormValid"
+            class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <span v-if="!isLoading">Create Account</span>
             <span v-else class="flex items-center justify-center">
@@ -216,7 +257,7 @@ const handleRegister = async () => {
         <p class="text-gray-600 cursor-default">
           Already have an account?
           <NuxtLink
-            to="/login"
+            to="/sign-in"
             class="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
           >
             Sign in

@@ -1,12 +1,27 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ShieldCheck, Loader2, Clock } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { ShieldCheck, Loader2 } from 'lucide-vue-next'
+import type { RequestNewVerificationDto, VerifyRegistrationDto } from '@common-types'
+import { useAuthService } from '~/services/useAuthService'
+import type { ApiResponse } from '~/types/app.types'
+
+
+const { showToast } = useAppStore()
+const { verifyEmail, requestNewverificationEmail } = useAuthService()
+const { setUserData } = useUserStore()
+
 
 const code = ref(['', '', '', '', '', ''])
 const isLoading = ref(false)
+
+const verificationErrorMessage = ref('')
+const isVerificationStale = ref(false)
+
 const isResending = ref(false)
-const canResend = ref(false)
-const resendCountdown = ref(0)
+const isNewVerificationCodeRequested = ref(false)
+
+const route = useRoute();
+const emailQuery = route.query.email as string || ''
 
 const fullCode = computed(() => code.value.join(''))
 
@@ -55,66 +70,59 @@ const handleVerify = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Call backend verification endpoint
-    // const response = await $fetch('/api/auth/verify-email', {
-    //   method: 'POST',
-    //   body: {
-    //     code: fullCode.value,
-    //   },
-    // })
+    const dto: VerifyRegistrationDto = {
+      code: fullCode.value as string,
+    }
 
-    // TODO: Redirect to dashboard or login on success
-    // await navigateTo('/dashboard')
-
-    console.log('Verification code:', fullCode.value)
     // Simulated success
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log('Email verified successfully!')
-  } catch (error) {
-    console.error('Verification error:', error)
-    // Reset code on error
-    code.value = ['', '', '', '', '', '']
+    const response: ApiResponse = await verifyEmail(dto)
+    console.log('resss: ', response);
+
+    if (!response.success && response.error.includes('stale')) {
+      isVerificationStale.value = true
+      verificationErrorMessage.value = response.error
+    }
+    else if (response.success && response.data) {
+      // TODO: need to route to main with user/login data
+      setUserData(response.data)
+      navigateTo({
+        path: '/home',
+      })
+    }
+    else if (response.error) {
+      verificationErrorMessage.value = response.error
+    }
+    
+    // console.log('Registration successful!')
+  } catch (error: unknown) {
+    console.error('Account verification error:', error)
+    verificationErrorMessage.value = 'Registration Failed: API Error'
   } finally {
     isLoading.value = false
   }
 }
 
-const handleResend = async () => {
+const handleRequestFreshVerificationCode = async () => {
   isResending.value = true
-  canResend.value = false
-  resendCountdown.value = 30
-
   try {
-    // TODO: Call backend resend code endpoint
-    // const response = await $fetch('/api/auth/resend-verification-code', {
-    //   method: 'POST',
-    // })
-
+    const dto: RequestNewVerificationDto = { email: emailQuery }
+    const response: ApiResponse = await requestNewverificationEmail(dto)
+    console.log('resss2: ', response);
+    isNewVerificationCodeRequested.value = true
     console.log('Resend code requested')
-    // Simulated success
-    await new Promise(resolve => setTimeout(resolve, 1000))
-  } catch (error) {
-    console.error('Resend error:', error)
+    showToast({
+      message: 'New verification code requested',
+      description: 'Please check your email for the new verification code.',
+      position: 'top-center',
+      duration: 10000,
+      type: 'success'
+    });
+  } catch (error: unknown) {
+    console.error('Resend verification code error:', error)
   } finally {
     isResending.value = false
   }
 }
-
-// Countdown timer
-watch(() => resendCountdown.value, (newVal) => {
-  if (newVal > 0) {
-    setTimeout(() => {
-      resendCountdown.value = newVal - 1
-    }, 1000)
-  } else if (newVal === 0 && resendCountdown.value === 0) {
-    canResend.value = true
-  }
-}, { immediate: false })
-
-// Initialize resend countdown on mount
-onMounted(() => {
-  resendCountdown.value = 30
-})
 </script>
 
 <template>
@@ -135,7 +143,7 @@ onMounted(() => {
 
       <!-- Form Card -->
       <div class="bg-white rounded-lg shadow-sm p-8">
-        <form class="space-y-6" @submit.prevent="handleVerify">
+        <form class="space-y-0" @submit.prevent="handleVerify">
           <!-- Code Input Fields -->
           <div class="flex justify-center gap-2">
             <input
@@ -150,11 +158,14 @@ onMounted(() => {
               @keydown="handleKeydown(index, $event)"
             >
           </div>
+          <div class="min-h-6 py-2">
+            <span v-if="verificationErrorMessage" class="text-red-700">{{ verificationErrorMessage }}</span>
+          </div>
 
           <!-- Verify Button -->
           <button
             type="submit"
-            :disabled="isLoading || code.join('').length < 6"
+            :disabled="isLoading || code.join('').length < 6 || isVerificationStale"
             class="w-full bg-gray-500 text-white font-semibold py-2.5 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span v-if="!isLoading">Verify code</span>
@@ -166,23 +177,19 @@ onMounted(() => {
         </form>
 
         <!-- Resend Code Section -->
-        <div class="mt-6 text-center">
+        <div class="mt-4 text-center">
           <button
-            v-if="canResend"
-            :disabled="isResending"
-            class="text-gray-900 hover:text-gray-600 transition-colors disabled:opacity-50"
-            @click="handleResend"
+            v-if="isVerificationStale"
+            :disabled="isResending || isNewVerificationCodeRequested"
+            class="w-full bg-gray-500 text-white font-semibold py-2.5 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            @click="handleRequestFreshVerificationCode()"
           >
-            <span v-if="!isResending">Resend code</span>
-            <span v-else class="flex items-center justify-center gap-2">
-              <Loader2 class="w-4 h-4 animate-spin" />
-              Sending...
+            <span v-if="!isResending">Request New Code</span>
+            <span v-else class="flex items-center justify-center">
+              <Loader2 class="w-4 h-4 animate-spin mr-2" />
+              Requesting...
             </span>
           </button>
-          <div v-else class="flex items-center justify-center gap-2 text-gray-600">
-            <Clock class="w-4 h-4" />
-            <span>Resend code in {{ resendCountdown }}s</span>
-          </div>
         </div>
       </div>
     </div>

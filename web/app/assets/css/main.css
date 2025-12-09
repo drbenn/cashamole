@@ -123,3 +123,40 @@
     font-family: 'PT Sans', system-ui, sans-serif;
   }
 }
+
+
+
+.my-custom-toast {
+  /* Use the dark class selector provided by sonner's default styling */
+  /* This targets the main toast container */
+  &.dark {
+    --sonner-toast-background: #5b21b6; /* Custom deep purple background */
+    --sonner-toast-border: #8b5cf6;
+    --sonner-toast-text: white;
+  }
+
+  /* Target the light mode version if needed */
+  &:not(.dark) {
+    --sonner-toast-background: #f5f3ff;
+    --sonner-toast-border: #c4b5fd;
+    --sonner-toast-text: #1e1e1e;
+  }
+}
+
+/* Define a class for a 'VIP' style toast */
+.vip-toast {
+  /* This selector ensures the styles are applied to the sonner component structure */
+  &.dark {
+    /* Overwrite sonner's default CSS variables for dark mode */
+    --sonner-toast-background: theme('colors.indigo.600'); /* Tailwind's indigo-600 */
+    --sonner-toast-border: theme('colors.indigo.400');
+    --sonner-toast-text: theme('colors.white');
+  }
+
+  /* Define for light mode */
+  &:not(.dark) {
+    --sonner-toast-background: theme('colors.indigo.100');
+    --sonner-toast-border: theme('colors.indigo.300');
+    --sonner-toast-text: theme('colors.gray.900');
+  }
+}

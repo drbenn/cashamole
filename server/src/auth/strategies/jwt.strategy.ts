@@ -11,7 +11,7 @@ import { Request } from 'express';
 import { AuthService } from '../auth.service';
 // import { UserProfile } from '@common-types';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { UserProfile } from '@common-types';
+import { User } from '@common-types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -43,6 +43,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   //   }
   // }
   async validate(payload: any): Promise<any | null> {
+    console.log('jwt strategy validate payload: ', payload);
+    
     return true
   }
 }

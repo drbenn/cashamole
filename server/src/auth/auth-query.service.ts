@@ -30,6 +30,17 @@ export class AuthQueryService {
     }
   }
 
+  async findUserIdByEmail(email: string): Promise<string> {
+    try {
+      const result = await this.pgPool.query('SELECT id FROM users WHERE email = $1', [email]);
+      return result.rows[0].id
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findUserByEmail: ${error}`);
+      throw new Error('Error: auth-query-service findUserByEmail');
+    }
+  }
+
   async findUserById(userId: string): Promise<any> {
     try {
       const result = await this.pgPool.query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -159,8 +170,8 @@ export class AuthQueryService {
         await client.query('ROLLBACK');
         this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: Database failed to mark email as confirmed.`);
         throw new ConflictException({
-          message: 'Account verification failed',
-          reason: 'Verification not confirmed. Database failed to mark email as confirmed.'
+          message: 'Account verification failed: Failed to confirm user email.',
+          // reason: 'Verification not confirmed. Database failed to mark email as confirmed.'
         });
       }
 
@@ -179,8 +190,8 @@ export class AuthQueryService {
         await client.query('ROLLBACK')
         this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: User account already verified.`);
         throw new ConflictException({
-          message: 'Account verification failed',
-          reason: 'User account already verified.'
+          message: 'Account verification failed: User account already verified.',
+          // reason: 'User account already verified.'
         });
       }
 
@@ -205,8 +216,8 @@ export class AuthQueryService {
         await client.query('ROLLBACK');
         this.logger.log('warn', `Error: auth-query-service updateEmailConfirmationUsedAndVerifyUser: User verified status not updated.`);
         throw new ConflictException({
-          message: 'Account verification failed',
-          reason: 'User verified status not updated.'
+          message: 'Account verification failed: User verified status not updated.',
+          // reason: 'User verified status not updated.'
         });
       }
 

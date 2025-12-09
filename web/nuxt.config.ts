@@ -34,5 +34,13 @@ export default defineNuxtConfig({
      * @default "@/components/ui"
      */
     componentDir: '@/components/ui'
-  }
+  },
+  runtimeConfig: {
+    // Keys defined here are PRIVATE (server-side only)
+    // apiSecret: '', // can be overridden by NUXT_API_SECRET environment variable
+    // Keys defined here are PUBLIC (server AND client-side)
+    public: {
+      apiBaseUrl: '', // can be overridden by NUXT_PUBLIC_API_BASE environment variable
+    },
+  },
 })

@@ -6,8 +6,8 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
-console.log('__dirname:', __dirname)
-console.log('resolved path:', path.resolve(__dirname, '../server/common-types'))
+// console.log('__dirname:', __dirname)
+// console.log('resolved path:', path.resolve(__dirname, '../server/common-types'))
 
 // https://vite.dev/config/
 export default defineConfig({

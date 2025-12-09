@@ -5,7 +5,10 @@
     "paths": {
       "@/*": ["./app/*"],
       // "@common-types/*": ["../server/common-types/*"]
-    }
+    },
+    "types": [
+      "@types/node" // <--- Add this line if it's missing
+    ]
   },
   "files": [],
   "references": [

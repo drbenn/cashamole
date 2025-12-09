@@ -1,10 +1,19 @@
 <script setup lang="ts">
+  import 'vue-sonner/style.css'
+import { Toaster } from '@/components/ui/sonner'
 import NavBar from '@/components/custom/shared/NavBar.vue';
 import Footer from './components/custom/shared/Footer.vue';
+const config = useRuntimeConfig();
+const baseUrl = config.public.apiBaseUrl;
+console.log('main baseUrl: ', baseUrl);
+console.log('config: ', config);
+
+
 </script>
 
 <template>
   <div class="flex flex-col min-h-screen">
+    <Toaster position="bottom-right" rich-colors />
     <!-- Navbar -->
     <NavBar />
 

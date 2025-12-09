@@ -34,6 +34,12 @@ export class AuthController {
   };
 
   private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {
+    console.log('slc: ', res);
+    console.log('at: ', jwtAccessToken);
+    console.log('rt: ', jwtRefreshToken);
+    
+    
+    
     const baseOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -81,6 +87,19 @@ export class AuthController {
     return { 
       message: 'Account verified successfully!',
       user: user
+    }
+  }
+
+  @Post('verify-email-new-request')
+  // @UseGuards(ThrottlerGuard)
+  // @Throttle({ default: { limit: 1, ttl: 60000 }}) // 1 attempts per min
+  async verifyEmailNewRequest(
+    @Body() dto: CommonTypes.RequestNewVerificationDto 
+  ) {
+    await this.authService.requestNewVerificationCode(dto)
+    return {
+      statusCode: 200,
+      message: 'New verification code emailed to user.',
     }
   }
 

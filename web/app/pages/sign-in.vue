@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Box, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { useAuthService } from '~/services/useAuthService'
+import type { ApiResponse } from '~/types/app.types'
+import type { LoginUserDto } from '@common-types'
 
 const form = ref({
   email: '',
   password: '',
-  staySignedIn: false,
 })
+
+const { login } = useAuthService()
+const { setUserData } = useUserStore()
 
 const showPassword = ref(false)
 const isLoading = ref(false)
@@ -20,18 +25,19 @@ const handleLogin = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Call backend login endpoint
-    // const response = await $fetch('/api/auth/login', {
-    //   method: 'POST',
-    //   body: {
-    //     email: form.value.email,
-    //     password: form.value.password,
-    //   },
-    // })
+    const dto: LoginUserDto = {
+      email: form.value.email,
+      password: form.value.password
+    }
 
-    // TODO: Store tokens and redirect to dashboard
-    // await navigateTo('/dashboard')
-
+    const response: ApiResponse = await login(dto)
+    console.log('resss: ', response);
+    if (response.success) {
+      setUserData(response.data)
+      navigateTo({
+        path: '/home',
+      })
+    }
     console.log('Login attempt:', form.value)
     // Simulated success
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -101,16 +107,8 @@ const handleLogin = async () => {
             </div>
           </div>
 
-          <!-- Stay Signed In & Forgot Password -->
-          <div class="flex items-center justify-between pt-2">
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input
-                v-model="form.staySignedIn"
-                type="checkbox"
-                class="w-4 h-4 border border-gray-300 rounded accent-black cursor-pointer"
-              >
-              <span class="text-sm text-gray-700">Stay Signed In</span>
-            </label>
+          <!-- Forgot Password -->
+          <div class="flex items-center justify-end pt-0 w-full">
             <NuxtLink
               to="/forgot-password"
               class="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
@@ -123,7 +121,7 @@ const handleLogin = async () => {
           <button
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+            class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-0"
           >
             <span v-if="!isLoading">Sign In</span>
             <span v-else class="flex items-center justify-center">
@@ -132,46 +130,6 @@ const handleLogin = async () => {
             </span>
           </button>
         </form>
-
-        <!-- OAuth Section (MVP Note) -->
-        <!-- <div class="mt-6">
-          <div class="relative mb-6">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-200"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-white text-gray-500 text-xs uppercase tracking-wider">
-                Or Continue With
-              </span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              disabled
-              class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="OAuth coming in future release"
-            >
-              <svg class="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              <span class="ml-2 text-sm font-medium">Google</span>
-            </button>
-            <button
-              type="button"
-              disabled
-              class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="OAuth coming in future release"
-            >
-              <Github class="w-5 h-5" />
-              <span class="ml-2 text-sm font-medium">GitHub</span>
-            </button>
-          </div>
-        </div> -->
       </div>
 
       <!-- Register Link -->
