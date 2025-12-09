@@ -3,7 +3,7 @@
 
   if (!isLoggedIn) {
     navigateTo({
-      path: '/sign-in',
+      path: '/auth/sign-in',
     })
   }
 </script>

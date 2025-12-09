@@ -110,7 +110,7 @@ const handleLogin = async () => {
           <!-- Forgot Password -->
           <div class="flex items-center justify-end pt-0 w-full">
             <NuxtLink
-              to="/forgot-password"
+              to="/auth/request-password-reset"
               class="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
             >
               Forgot Password?
@@ -137,7 +137,7 @@ const handleLogin = async () => {
         <p class="text-gray-600 cursor-default">
           No account yet?
           <NuxtLink
-            to="/register"
+            to="/auth/register"
             class="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
           >
             Register Now

@@ -1,4 +1,4 @@
-import type { CreateUserDto, LoginUserDto, RequestNewVerificationDto, VerifyRegistrationDto } from "@common-types"
+import type { CreateUserDto, LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto, ResetPasswordDto, VerifyRegistrationDto } from "@common-types"
 import type { FetchError } from 'ofetch'
 import type { ApiResponse } from "~/types/app.types"
 
@@ -64,7 +64,7 @@ export const useAuthService = () => {
     }
   }
 
-  const requestNewverificationEmail = async (dto: RequestNewVerificationDto): Promise<ApiResponse> => {
+  const requestNewVerificationEmail = async (dto: RequestNewVerificationDto): Promise<ApiResponse> => {
     try {
       const response = await $fetch(`${apiBase}/auth/verify-email-new-request`, {
         method: 'POST',
@@ -78,36 +78,40 @@ export const useAuthService = () => {
     }
   }
 
-
-
-
-
-
-
-
-
-  const forgotPassword = async (email: string): Promise<unknown> => {
-    return await $fetch('/api/auth/forgot-password', {
-      method: 'POST',
-      body: { email },
-    })
+  const requestPasswordReset = async (dto: RequestPasswordResetDto): Promise<ApiResponse> => {
+    try {
+      const response = await $fetch(`${apiBase}/auth/request-password-reset`, {
+        method: 'POST',
+        body: dto,
+      })
+      return { success: true, data: response }
+    }
+    catch (err) {
+      const error = err as FetchError
+      return { success: false, error: error.data?.message }
+    }
   }
 
-  const resetPassword = async (token: string, password: string): Promise<unknown> => {
-    return await $fetch('/api/auth/reset-password', {
-      method: 'POST',
-      body: { token, password },
-    })
+  const resetPassword = async (dto: ResetPasswordDto): Promise<ApiResponse> => {
+    try {
+      const response = await $fetch(`${apiBase}/auth/reset-password`, {
+        method: 'POST',
+        body: dto,
+      })
+      return { success: true, data: response }
+    }
+    catch (err) {
+      const error = err as FetchError
+      return { success: false, error: error.data?.message }
+    }
   }
-
-
 
   return {
     register,
     login,
     verifyEmail,
-    requestNewverificationEmail,
-    forgotPassword,
+    requestNewVerificationEmail,
+    requestPasswordReset,
     resetPassword,
     logoutApi,
   }

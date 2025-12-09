@@ -7,7 +7,7 @@ import type { ApiResponse } from '~/types/app.types'
 
 
 const { showToast } = useAppStore()
-const { verifyEmail, requestNewverificationEmail } = useAuthService()
+const { verifyEmail, requestNewVerificationEmail } = useAuthService()
 const { setUserData } = useUserStore()
 
 
@@ -71,10 +71,9 @@ const handleVerify = async () => {
 
   try {
     const dto: VerifyRegistrationDto = {
-      code: fullCode.value as string,
+      code: fullCode.value as string
     }
 
-    // Simulated success
     const response: ApiResponse = await verifyEmail(dto)
     console.log('resss: ', response);
 
@@ -83,7 +82,6 @@ const handleVerify = async () => {
       verificationErrorMessage.value = response.error
     }
     else if (response.success && response.data) {
-      // TODO: need to route to main with user/login data
       setUserData(response.data)
       navigateTo({
         path: '/home',
@@ -106,7 +104,7 @@ const handleRequestFreshVerificationCode = async () => {
   isResending.value = true
   try {
     const dto: RequestNewVerificationDto = { email: emailQuery }
-    const response: ApiResponse = await requestNewverificationEmail(dto)
+    const response: ApiResponse = await requestNewVerificationEmail(dto)
     console.log('resss2: ', response);
     isNewVerificationCodeRequested.value = true
     console.log('Resend code requested')

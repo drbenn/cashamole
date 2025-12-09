@@ -55,6 +55,16 @@ CREATE TABLE \"email_confirmations\" (
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE \"password_reset_email_confirmations\" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 "
 
 # --- Unset the password for security after use ---

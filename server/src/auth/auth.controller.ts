@@ -33,13 +33,7 @@ export class AuthController {
       return login
   };
 
-  private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {
-    console.log('slc: ', res);
-    console.log('at: ', jwtAccessToken);
-    console.log('rt: ', jwtRefreshToken);
-    
-    
-    
+  private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {   
     const baseOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

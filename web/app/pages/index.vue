@@ -53,7 +53,7 @@ const showVToast = () => {
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink
-            to="/register"
+            to="/auth/register"
             class="px-6 py-3 bg-black text-white rounded-md font-semibold hover:bg-gray-800 transition-colors inline-block"
           >
             Get Started Free
@@ -135,7 +135,7 @@ const showVToast = () => {
           Join thousands of users managing their finances with Cashamole.
         </p>
         <NuxtLink
-          to="/register"
+          to="/auth/register"
           class="px-8 py-3 bg-white text-black rounded-md font-semibold hover:bg-gray-100 transition-colors inline-block"
         >
           Create Your Account

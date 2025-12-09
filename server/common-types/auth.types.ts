@@ -17,6 +17,16 @@ export interface RequestNewVerificationDto {
   email: string,
 }
 
+export interface RequestPasswordResetDto {
+  email: string,
+}
+
+export interface ResetPasswordDto {
+  code: string,
+  email: string,
+  password: string
+}
+
 export type JwtPayload = {
     sub: string; // Subject (User ID)
     email: string;

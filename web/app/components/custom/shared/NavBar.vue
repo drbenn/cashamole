@@ -10,10 +10,10 @@ const { logout } = useUserStore()
 
 const allNavigation = [
   { name: 'Home', to: '/', auth: 'always' },
-  { name: 'Forgot Pass', to: '/forgot-password', auth: 'loggedOut' },
-  { name: 'Reset Pass', to: '/reset-password', auth: 'loggedOut' },
-  { name: 'Verify Email', to: '/register/verify-email', auth: 'loggedOut' },
-  { name: 'Sign In', to: '/sign-in', auth: 'loggedOut' },
+  { name: 'Forgot Password', to: '/auth/request-password-reset', auth: 'loggedOut' },
+  { name: 'Reset Password', to: '/auth/reset-password', auth: 'loggedOut' },
+  { name: 'Verify Email', to: '/auth/verify-email', auth: 'loggedOut' },
+  { name: 'Sign In', to: '/auth/sign-in', auth: 'loggedOut' },
   // { name: 'Sign Out', to: '/sign-in', auth: 'loggedIn' }, 
 ]
 
@@ -56,7 +56,7 @@ const handleLogout = () => {
           >
             {{ item.name }}
           </NuxtLink>
-          <NuxtLink v-if="!isLoggedIn" to="/register">
+          <NuxtLink v-if="!isLoggedIn" to="/auth/register">
             <Button class="cursor-pointer">Sign Up</Button>
           </NuxtLink>
           <Button v-if="isLoggedIn" class="cursor-pointer" @click="handleLogout()">Sign Out</Button>
@@ -86,7 +86,7 @@ const handleLogout = () => {
             >
               {{ item.name }}
             </NuxtLink>
-            <NuxtLink v-if="!isLoggedIn" to="/register">
+            <NuxtLink v-if="!isLoggedIn" to="/auth/register">
               <Button class="cursor-pointer">Sign Up</Button>
             </NuxtLink>
             <Button v-if="isLoggedIn" class="cursor-pointer" @click="handleLogout()">Sign Out</Button>

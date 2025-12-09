@@ -87,12 +87,10 @@ const handleRegister = async () => {
       password: form.value.password
     }
 
-    // Simulated success
     const response: ApiResponse = await register(dto)
-    console.log('resss: ', response);
     if (response.data) {
       navigateTo({
-        path: '/register/success',
+        path: '/auth/register-success',
         query: {
           email: response.data.email,
           created_at: response.data.created_at
@@ -102,8 +100,6 @@ const handleRegister = async () => {
     else if (response.error) {
       registrationErrorMessage.value = response.error
     }
-    
-    // console.log('Registration successful!')
   } catch (error: unknown) {
     console.error('Registration error:', error)
     registrationErrorMessage.value = 'Registration Failed: API Error'
@@ -234,7 +230,7 @@ const handleRegister = async () => {
               </Button>
             </div>
             <span v-if="passwordError" class="text-red-700">{{ passwordError }}</span>
-            <span v-if="registrationErrorMessage" class="text-red-700">Registration Failed: {{ registrationErrorMessage }}</span>
+            <span v-if="registrationErrorMessage" class="text-red-700">{{ registrationErrorMessage }}</span>
           </div>
 
           <!-- Create Account Button -->
@@ -257,7 +253,7 @@ const handleRegister = async () => {
         <p class="text-gray-600 cursor-default">
           Already have an account?
           <NuxtLink
-            to="/sign-in"
+            to="/auth/sign-in"
             class="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
           >
             Sign in

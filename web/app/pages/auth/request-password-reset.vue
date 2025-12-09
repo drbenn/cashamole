@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Mail, Loader2 } from 'lucide-vue-next'
+import type { RequestPasswordResetDto } from '@common-types'
+import type { ApiResponse } from '~/types/app.types'
+import { useAuthService } from '~/services/useAuthService'
+
+const { requestPasswordReset } = useAuthService()
 
 const form = ref({
   email: '',
 })
 
 const isLoading = ref(false)
+
+const errorMessage = ref('')
 
 const handleForgotPassword = async () => {
   if (!form.value.email) {
@@ -17,21 +24,23 @@ const handleForgotPassword = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Call backend forgot password endpoint
-    // const response = await $fetch('/api/auth/forgot-password', {
-    //   method: 'POST',
-    //   body: {
-    //     email: form.value.email,
-    //   },
-    // })
+    const dto: RequestPasswordResetDto = {
+      email: form.value.email,
+    }
 
-    // TODO: Show success message or redirect to confirmation page
-    // await navigateTo(`/reset-password-sent?email=${encodeURIComponent(form.value.email)}`)
-
-    console.log('Forgot password request:', form.value.email)
-    // Simulated success
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log('Reset instructions sent!')
+    const response: ApiResponse = await requestPasswordReset(dto)
+    if (response.data) {
+      navigateTo({
+        path: '/auth/request-password-reset-success',
+        query: {
+          email: response.data.email,
+          created_at: response.data.created_at
+        }
+      })
+    }
+    else if (response.error) {
+      errorMessage.value = response.error
+    }
   } catch (error) {
     console.error('Forgot password error:', error)
   } finally {
@@ -92,7 +101,7 @@ const handleForgotPassword = async () => {
         <p class="text-gray-600 cursor-default">
           Remember your password?
           <NuxtLink
-            to="/login"
+            to="/auth/sign-in"
             class="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
           >
             Sign in

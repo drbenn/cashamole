@@ -1,15 +1,27 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Box, Lock, Eye, EyeOff, Loader2, Check, X } from 'lucide-vue-next'
+import type { ApiResponse } from '~/types/app.types'
+import type { ResetPasswordDto } from '@common-types'
+import { useAuthService } from '~/services/useAuthService'
 
 const form = ref({
   newPassword: '',
   confirmPassword: '',
 })
 
+const route = useRoute();
+const emailQuery = route.query.email as string || ''
+const codeQuery = route.query.code as string || ''
+
+const { setUserData } = useUserStore()
+const { resetPassword } = useAuthService()
+
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
+const errorMessage = ref('')
+const isVerificationStale = ref(false)
 
 const passwordsMatch = computed(() => {
   if (!form.value.confirmPassword) return false
@@ -69,24 +81,27 @@ const handleResetPassword = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Call backend reset password endpoint
-    // const response = await $fetch('/api/auth/reset-password', {
-    //   method: 'POST',
-    //   body: {
-    //     token: route.query.token, // from URL query params
-    //     password: form.value.newPassword,
-    //   },
-    // })
+    const dto: ResetPasswordDto = {
+      code: codeQuery,
+      email: emailQuery,
+      password: form.value.confirmPassword
+    }
 
-    // TODO: Redirect to login page after success
-    // await navigateTo('/login')
+    const response: ApiResponse = await resetPassword(dto)
 
-    console.log('Reset password attempt with password strength:', passwordStrength.value)
-    // Simulated success
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log('Password reset successful!')
-  } catch (error) {
-    console.error('Reset password error:', error)
+    if (!response.success && response.error.includes('stale')) {
+      isVerificationStale.value = true
+      errorMessage.value = response.error
+    }
+    else if (response.success && response.data) {
+      setUserData(response.data)
+      navigateTo({
+        path: '/home',
+      })
+    }
+    else if (response.error) {
+      errorMessage.value = response.error
+    }
   } finally {
     isLoading.value = false
   }
@@ -208,7 +223,7 @@ const handleResetPassword = async () => {
         <p class="text-gray-600 cursor-default">
           Remember your password?
           <NuxtLink
-            to="/login"
+            to="/auth/sign-in"
             class="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
           >
             Sign in
