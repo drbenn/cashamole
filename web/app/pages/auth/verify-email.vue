@@ -22,6 +22,7 @@ const isNewVerificationCodeRequested = ref(false)
 
 const route = useRoute();
 const emailQuery = route.query.email as string || ''
+const idQuery = route.query.id as string || ''
 
 const fullCode = computed(() => code.value.join(''))
 
@@ -71,7 +72,8 @@ const handleVerify = async () => {
 
   try {
     const dto: VerifyRegistrationDto = {
-      code: fullCode.value as string
+      code: fullCode.value as string,
+      id: idQuery
     }
 
     const response: ApiResponse = await verifyEmail(dto)

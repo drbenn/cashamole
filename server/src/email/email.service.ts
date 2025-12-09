@@ -67,7 +67,7 @@ export class EmailService {
             <body>
               <p>Hello,</p>
               <p>You requested a password reset for ${process.env.BREVO_TEMPLATE_APP_NAME}. Click the link below to reset your password:</p>
-              <p><a href="${resetLink}" target="_blank">Reset Password: ${resetLink}</a></p>
+              <p><a href="${resetLink}" target="_blank">${resetLink}</a></p>
               <p>If you didn't request this password change, you can safely ignore this email.</p>
               <br>
               <p>Thanks,<br>Your ${process.env.BREVO_TEMPLATE_APP_NAME} Team</p>

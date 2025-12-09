@@ -66,7 +66,8 @@ export class AuthController {
 
     // 2. Return a successful, standardized response
     return { 
-      statusCode: 200, 
+      statusCode: 200,
+      success: true,
       message: 'Logged out successfully' 
     };
   }
@@ -80,23 +81,39 @@ export class AuthController {
     const user = await this.authService.verifyAccount(dto)
     return { 
       message: 'Account verified successfully!',
+      success: true,
       user: user
     }
   }
 
-  @Post('verify-email-new-request')
+  @Post('request-password-reset')
   // @UseGuards(ThrottlerGuard)
   // @Throttle({ default: { limit: 1, ttl: 60000 }}) // 1 attempts per min
-  async verifyEmailNewRequest(
-    @Body() dto: CommonTypes.RequestNewVerificationDto 
+  async requestPasswordReset(
+    @Body() dto: CommonTypes.RequestPasswordResetDto 
   ) {
-    await this.authService.requestNewVerificationCode(dto)
+    await this.authService.requestPasswordReset(dto)
     return {
       statusCode: 200,
-      message: 'New verification code emailed to user.',
+      success: true,
+      message: 'Reset password info emailed to user.',
     }
   }
 
+  @Post('reset-password')
+  // @UseGuards(ThrottlerGuard)
+  // @Throttle({ default: { limit: 1, ttl: 60000 }}) // 1 attempts per min
+  async resetPassword(
+    @Body() dto: CommonTypes.ResetPasswordDto 
+  ) {
+    const user = await this.authService.resetPassword(dto)
+    return {
+      statusCode: 200,
+      success: true,
+      message: 'User password reset successfully.',
+      data: user
+    }
+  }
 
 
 }

@@ -1,4 +1,4 @@
-import { CreateUserDto } from '@common-types';
+import { CreateUserDto, ResetPasswordDto, VerifyRegistrationDto } from '@common-types';
 import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Pool } from 'pg';
@@ -109,7 +109,7 @@ export class AuthQueryService {
     }
   }
 
-  async insertEmailConfirmation(
+  async insertRegisterAccountEmailConfirmation(
     userId: string,
     verificationCode: string,
     expiresAt: Date
@@ -136,9 +136,9 @@ export class AuthQueryService {
     }
   }
 
-  async findEmailConfirmation(code: string) {
+  async findEmailConfirmation(dto: VerifyRegistrationDto) {
     try {
-      const result = await this.pgPool.query('SELECT * FROM email_confirmations WHERE code = $1', [code]);
+      const result = await this.pgPool.query('SELECT * FROM email_confirmations WHERE code = $1 AND id = $2;', [dto.code, dto.id]);
       return result.rows[0]
     } catch (error) {
       console.error('Database query error:', error);
@@ -161,7 +161,7 @@ export class AuthQueryService {
       const confirmationUsedAtUpdateResult = await client.query(
         `UPDATE "email_confirmations" 
         SET used_at = $1 
-        WHERE id = $2 AND used_at IS NULL RETURNING user_id`,
+        WHERE id = $2 AND used_at IS NULL RETURNING user_id;`,
         [usedAtTimestamp, confirmationId]);        
         
       if (confirmationUsedAtUpdateResult.rowCount === 0) {
@@ -207,7 +207,7 @@ export class AuthQueryService {
         ),
         updated_at = $1
         WHERE id = $2
-        RETURNING *`,
+        RETURNING *;`,
         [usedAtTimestamp, userId]
       );
 
@@ -265,4 +265,117 @@ export class AuthQueryService {
       throw new Error('Error: auth-query-service insertRefreshTokenHash');
     }
   }
+
+
+  async insertPasswordResetEmailConfirmations(
+    userId: string,
+    email: string,
+    verificationCode: string,
+    expiresAt: Date
+  ): Promise<any> {
+    const queryText = `
+      INSERT INTO "password_reset_email_confirmations" (user_id, email, code, expires_at)
+      VALUES ($1, $2, $3)
+      RETURNING id;
+    `;
+
+    const values = [
+      userId,
+      email,
+      verificationCode,
+      expiresAt
+    ];
+
+    try {
+      const result = await this.pgPool.query(queryText, values);   
+      return result.rows[0]
+    } catch (error) {
+      this.logger.log('warn', `Error: auth-query-service insertPasswordResetEmailConfirmations: ${error}`);
+      throw new Error('Error: auth-query-service insertPasswordResetEmailConfirmations');
+    }
+  }
+
+  async findPasswordResetConfirmation(dto: ResetPasswordDto) {
+    try {
+      const result = await this.pgPool.query('SELECT * FROM password_reset_email_confirmations WHERE code = $1 AND id = $2 AND email = $3;', [dto.code, dto.id, dto.email]);
+      return result.rows[0]
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service findPasswordResetConfirmation: ${error}`);
+      throw new Error('Error: auth-query-service findPasswordResetConfirmation');
+    }
+  }
+
+    // must use transaction to perform both update password_reset_email_confirmations and users table, both updates must succeed or none update
+  async updatePassword(dto: ResetPasswordDto, user_id: string) {
+    const now = new Date();
+    const usedAtTimestamp = now.toISOString();
+
+    // Get a client from the pool to manage the transaction
+    const client = await this.pgPool.connect();
+    try {
+      await client.query('BEGIN'); // START THE TRANSACTION
+      
+      // --- QUERY 1: UPDATE password_reset_email_confirmations (Mark as used) ---
+      const confirmationUsedAtUpdateResult = await client.query(
+        `UPDATE "password_reset_email_confirmations" 
+        SET used_at = $1 
+        WHERE id = $2 AND used_at IS NULL RETURNING user_id;`,
+        [usedAtTimestamp, dto.id]);        
+        
+      if (confirmationUsedAtUpdateResult.rowCount === 0) {
+        // If no row was updated, the code was invalid, expired, or already used.
+        // We must rollback before throwing an error.
+        await client.query('ROLLBACK');
+        this.logger.log('warn', `Error: auth-query-service updatePassword: Database failed to mark email as confirmed.`);
+        throw new ConflictException({
+          message: 'Password reset failed: Failed to confirm cornfirmation used at.',
+        });
+      }
+
+      // --- QUERY 2: UPDATE users (Update new providers email hashed password) ---
+      // We use the JSONB operator || (concatenation) to merge a new value deep into the object
+      const userUpdateResult = await client.query(
+        `UPDATE "users" 
+        SET providers = jsonb_set(
+          providers,                                       -- The JSONB column to update
+          '{email, password}',                             -- The path to the key (['email', 'password'])
+          $3::jsonb,                                       -- The new value (password string), cast to jsonb
+          true                                             -- The create_missing flag
+        ),
+        updated_at = $1
+        WHERE id = $2
+        RETURNING *;`,
+        [usedAtTimestamp, user_id, `"${dto.password}"`]
+      );
+
+      if (userUpdateResult.rowCount === 0) {
+        // Highly unlikely to fail if the user was found earlier, but good for atomicity
+        await client.query('ROLLBACK');
+        this.logger.log('warn', `Error: auth-query-service updatePassword: Failed to update users table user password.`);
+        throw new ConflictException({
+          message: 'Password reset failed: Failed to update users password.',
+        });
+      }
+
+      const user = userUpdateResult.rows[0]
+      delete user.providers.email.password
+
+      // COMMIT Transaction and update all records simultaneously
+      await client.query('COMMIT');
+
+      return user
+
+    } catch (error) {
+      console.error('Database query error:', error);
+      this.logger.log('warn', `Error: auth-query-service updatePassword: ${error}`);
+      await client.query('ROLLBACK');
+      throw new Error('Error: auth-query-service updatePassword');
+    } finally {
+      // IMPORTANT: Release the client back to the pool from transaction
+      client.release();
+    }
+  }
+
+
 }

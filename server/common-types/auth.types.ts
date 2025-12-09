@@ -11,6 +11,7 @@ export interface LoginUserDto {
 
 export interface VerifyRegistrationDto {
   code: string,
+  id: string
 }
 
 export interface RequestNewVerificationDto {
@@ -24,7 +25,8 @@ export interface RequestPasswordResetDto {
 export interface ResetPasswordDto {
   code: string,
   email: string,
-  password: string
+  password: string,
+  id: string
 }
 
 export type JwtPayload = {

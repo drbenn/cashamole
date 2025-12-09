@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AuthQueryService } from './auth-query.service';
-import { CreateUserDto, JwtPayload, LoginUserDto, RequestNewVerificationDto, VerifyRegistrationDto } from '@common-types';
+import { CreateUserDto, JwtPayload, LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto, ResetPasswordDto, VerifyRegistrationDto } from '@common-types';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
@@ -72,11 +72,12 @@ export class AuthService {
 
   async sendAccountVerificationEmail(userId: string, userEmail: string): Promise<any> {
     const confirmationCode: string = this.generateConfirmationCode()
-    const verificationUrl: string = `${process.env.FRONTEND_URL}/register/verify-email?email=${userEmail}&code=${encodeURIComponent(confirmationCode)}`
     const expiresAt: Date = new Date(Date.now() + 60 * 60 * 1000) // 60 min
+    let verificationUrl: string = `${process.env.FRONTEND_URL}/auth/register/verify-email?email=${userEmail}&code=${encodeURIComponent(confirmationCode)}&id=`
 
     try {
-      await this.authQueryService.insertEmailConfirmation(userId, confirmationCode, expiresAt)   
+      const confirmationId = await this.authQueryService.insertRegisterAccountEmailConfirmation(userId, confirmationCode, expiresAt)
+      verificationUrl += confirmationId
     } catch (error: unknown) {
       throw new ConflictException({
         message: 'Account verification failed: Error adding email confirmation record.',
@@ -106,7 +107,7 @@ export class AuthService {
   }
 
   async verifyAccount(dto: VerifyRegistrationDto) {
-    const confirmation = await this.authQueryService.findEmailConfirmation(dto.code)
+    const confirmation = await this.authQueryService.findEmailConfirmation(dto)
 
     if (!confirmation) {
       throw new ConflictException({
@@ -183,4 +184,60 @@ export class AuthService {
       jwtRefreshToken: jwtRefreshToken,
     }
   }
+
+
+  async requestPasswordReset(dto: RequestPasswordResetDto): Promise<any> {
+    const user = await this.authQueryService.findUserByEmail(dto.email)
+    const confirmationCode: string = this.generateConfirmationCode()
+    const expiresAt: Date = new Date(Date.now() + 60 * 60 * 1000) // 60 min
+    const confirmation = await this.authQueryService.insertPasswordResetEmailConfirmations(user.id, dto.email, confirmationCode, expiresAt)
+    const resetUrl: string = `${process.env.FRONTEND_URL}/auth/reset-password?email=${user.email}&code=${encodeURIComponent(confirmationCode)}&id=${confirmation.id}`
+
+    try {
+      const smtpEmailResponse =  await this.emailService.sendResetPasswordLinkEmail(user.email, resetUrl)
+      return {
+        success: true,
+        data: smtpEmailResponse
+      }
+    } catch (error: unknown) {
+      this.logger.log(
+        'warn',
+        `Error sending email in email service for requestPasswordReset(): ${error}`,
+      );
+      throw new ConflictException({
+        message: 'Password reset request failed: Error sending password reset request email to user email.',
+        // reason: 'Error sending email confirmation to user email.'
+      });
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const confirmation = await this.authQueryService.findPasswordResetConfirmation(dto)
+
+    if (!confirmation) {
+      throw new ConflictException({
+        message: 'Reset password failed: Incorrect code submitted.',
+      });
+    }
+
+    if (confirmation.used_at) {
+      throw new ConflictException({
+        message: 'Account password failed: Reset confirmation previously completed. Request new password reset.',
+      });
+    }
+    
+    if (new Date(confirmation.expires_at) < new Date()) {
+      throw new ConflictException({
+        message: 'Password reset failed: Verification stale. User must reset password within 60 minutes of requesting password reset.',
+      });
+    }
+
+    // hash new password for storage
+    if (dto.password) dto.password = await this.hashString(dto.password)
+
+    const userAsSuccessfulResponse = await this.authQueryService.updatePassword(dto, confirmation.user_id)
+    return userAsSuccessfulResponse
+  }
+
+
 }
