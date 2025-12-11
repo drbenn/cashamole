@@ -13,12 +13,11 @@ const { setUserData } = useUserStore()
 
 const code = ref(['', '', '', '', '', ''])
 const isLoading = ref(false)
+const isResendLoading = ref(false)
 
 const verificationErrorMessage = ref('')
-const isVerificationStale = ref(false)
+const isResendConfirmationAvailable = ref(false)
 
-const isResending = ref(false)
-const isNewVerificationCodeRequested = ref(false)
 
 const route = useRoute();
 const emailQuery = route.query.email as string || ''
@@ -77,10 +76,13 @@ const handleVerify = async () => {
     }
 
     const response: ApiResponse = await verifyEmail(dto)
-    console.log('resss: ', response);
 
     if (!response.success && response.error.includes('stale')) {
-      isVerificationStale.value = true
+      isResendConfirmationAvailable.value = true
+      verificationErrorMessage.value = response.error
+    }
+    else if (!response.success && response.error.includes('Incorrect account verification code submitted')) {
+      isResendConfirmationAvailable.value = true
       verificationErrorMessage.value = response.error
     }
     else if (response.success && response.data) {
@@ -93,7 +95,6 @@ const handleVerify = async () => {
       verificationErrorMessage.value = response.error
     }
     
-    // console.log('Registration successful!')
   } catch (error: unknown) {
     console.error('Account verification error:', error)
     verificationErrorMessage.value = 'Registration Failed: API Error'
@@ -102,25 +103,38 @@ const handleVerify = async () => {
   }
 }
 
-const handleRequestFreshVerificationCode = async () => {
-  isResending.value = true
+const handleResendConfirmation = async () => {
+  isResendLoading.value = true
   try {
     const dto: RequestNewVerificationDto = { email: emailQuery }
     const response: ApiResponse = await requestNewVerificationEmail(dto)
-    console.log('resss2: ', response);
-    isNewVerificationCodeRequested.value = true
-    console.log('Resend code requested')
-    showToast({
-      message: 'New verification code requested',
-      description: 'Please check your email for the new verification code.',
-      position: 'top-center',
-      duration: 10000,
-      type: 'success'
-    });
-  } catch (error: unknown) {
+    if (response.success) {
+      navigateTo({
+        path: '/auth/confirmation-resend-success',
+        query: {
+          email: response.data.email,
+          created_at: response.data.created_at
+        }})
+    } else {
+      showToast({
+        message: response.error,
+        position: 'top-right',
+        duration: 5000,
+        type: 'error'
+      });
+    }
+
+  } catch (error: unknown | any) {
     console.error('Resend verification code error:', error)
+    showToast({
+      message: 'Error',
+      description: error,
+      position: 'top-right',
+      duration: 5000,
+      type: 'error'
+    });
   } finally {
-    isResending.value = false
+    isResendLoading.value = false
   }
 }
 </script>
@@ -165,7 +179,7 @@ const handleRequestFreshVerificationCode = async () => {
           <!-- Verify Button -->
           <button
             type="submit"
-            :disabled="isLoading || code.join('').length < 6 || isVerificationStale"
+            :disabled="isLoading || code.join('').length < 6"
             class="w-full bg-gray-500 text-white font-semibold py-2.5 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span v-if="!isLoading">Verify code</span>
@@ -176,21 +190,21 @@ const handleRequestFreshVerificationCode = async () => {
           </button>
         </form>
 
-        <!-- Resend Code Section -->
-        <div class="mt-4 text-center">
-          <button
-            v-if="isVerificationStale"
-            :disabled="isResending || isNewVerificationCodeRequested"
-            class="w-full bg-gray-500 text-white font-semibold py-2.5 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            @click="handleRequestFreshVerificationCode()"
-          >
-            <span v-if="!isResending">Request New Code</span>
-            <span v-else class="flex items-center justify-center">
-              <Loader2 class="w-4 h-4 animate-spin mr-2" />
-              Requesting...
-            </span>
-          </button>
-        </div>
+        <!-- Resend Confirmation Button -->
+        <button
+          v-if="isResendConfirmationAvailable"
+          type="button"
+          v-on:click="handleResendConfirmation"
+          :disabled="isResendLoading || !isResendConfirmationAvailable"
+          class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-4"
+        >
+          <span v-if="!isResendLoading">Resend Confirmation Email</span>
+          <span v-else class="flex items-center justify-center">
+            <Loader2 class="w-4 h-4 animate-spin mr-2" />
+            Resending Confirmation...
+          </span>
+        </button>
+
       </div>
     </div>
   </div>

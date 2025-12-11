@@ -5,10 +5,8 @@ import type { ApiResponse } from "~/types/app.types"
 export const useAuthService = () => {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBaseUrl
-  console.log('***', apiBase);
 
   const register = async (dto: CreateUserDto): Promise<ApiResponse> => {
-    console.log(apiBase);
     
     try {
       const response = await $fetch(`${apiBase}/auth/register`, {
@@ -18,10 +16,8 @@ export const useAuthService = () => {
       return { success: true, data: response }
     }
     catch (err) {
-      console.log(err);
-      
       const error = err as FetchError
-      return { success: false, error: error.data?.message }
+      return { success: false, error: error.data?.message, data: error.data?.data }
     }
   }
 
@@ -35,7 +31,7 @@ export const useAuthService = () => {
     }
     catch (err) {
       const error = err as FetchError
-      return { success: false, error: error.data?.message }
+      return { success: false, error: error.data?.message, data: error.data?.data }
     }
   }
 
@@ -88,7 +84,7 @@ export const useAuthService = () => {
     }
     catch (err) {
       const error = err as FetchError
-      return { success: false, error: error.data?.message }
+      return { success: false, error: error.data?.message, data: error.data?.data }
     }
   }
 

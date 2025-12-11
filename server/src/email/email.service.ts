@@ -70,7 +70,7 @@ export class EmailService {
               <p><a href="${resetLink}" target="_blank">${resetLink}</a></p>
               <p>If you didn't request this password change, you can safely ignore this email.</p>
               <br>
-              <p>Thanks,<br>Your ${process.env.BREVO_TEMPLATE_APP_NAME} Team</p>
+              <p>Thank You!<br>Your ${process.env.BREVO_TEMPLATE_APP_NAME} Team</p>
             </body>
           </html>
         `,

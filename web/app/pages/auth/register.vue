@@ -3,9 +3,12 @@ import { ref } from 'vue'
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import { z } from 'zod'
 import { useAuthService } from '~/services/useAuthService'
-import type { CreateUserDto } from '@common-types'
+import type { CreateUserDto, RequestNewVerificationDto } from '@common-types'
 import type { ApiResponse } from '~/types/app.types'
 import { Button } from '@/components/ui/button'
+
+const { register, requestNewVerificationEmail } = useAuthService()
+const { showToast } = useAppStore()
 
 const form = ref({
   email: '',
@@ -16,13 +19,17 @@ const form = ref({
 const emailSchema = z.string().email()
 const emailError = ref('')
 const passwordError = ref('')
+const errorMessage = ref('')
 
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
-const isLoading = ref(false)
-const registrationErrorMessage = ref('')
 
-const { register } = useAuthService()
+const isLoading = ref(false)
+const isResendLoading = ref(false)
+
+const isResendConfirmationAvailable = ref(false)
+const resendConfirmationemailAddress = ref('')
+
 
 // non-computed function required for @blur
 const validateEmail = () => {
@@ -40,7 +47,7 @@ const validatePassword = () => {
     passwordError.value = 'Passwords must match.'
   } else if (form.value.password && form.value.confirmPassword && form.value.password === form.value.confirmPassword && form.value.password.length < 8) {
     passwordError.value = 'Password must be at least 8 characters long.'
-  } else if (form.value.password && form.value.confirmPassword && form.value.password === form.value.confirmPassword && form.value.password.length > 8) {
+  } else if (form.value.password && form.value.confirmPassword && form.value.password === form.value.confirmPassword && form.value.password.length >= 8) {
     passwordError.value = ''
   }
 }
@@ -88,7 +95,8 @@ const handleRegister = async () => {
     }
 
     const response: ApiResponse = await register(dto)
-    if (response.data) {
+    
+    if (response.success && response.data) {
       navigateTo({
         path: '/auth/register-success',
         query: {
@@ -97,14 +105,53 @@ const handleRegister = async () => {
         }
       })
     }
-    else if (response.error) {
-      registrationErrorMessage.value = response.error
+    else if (!response.success) {
+      errorMessage.value = response.error
+      if (response.error.includes('Email has already been submitted for registration process.')) {
+        isResendConfirmationAvailable.value = true
+        resendConfirmationemailAddress.value = response.data.email
+      }
     }
   } catch (error: unknown) {
     console.error('Registration error:', error)
-    registrationErrorMessage.value = 'Registration Failed: API Error'
+    errorMessage.value = 'Registration Failed: API Error'
   } finally {
     isLoading.value = false
+  }
+}
+
+const handleResendConfirmation = async () => {
+  isResendLoading.value = true
+  try {
+    const dto: RequestNewVerificationDto = { email: resendConfirmationemailAddress.value }
+    const response: ApiResponse = await requestNewVerificationEmail(dto)
+    if (response.success) {
+      navigateTo({
+        path: '/auth/confirmation-resend-success',
+        query: {
+          email: response.data.email,
+          created_at: response.data.created_at
+        }})
+    } else {
+      showToast({
+        message: response.error,
+        position: 'top-right',
+        duration: 5000,
+        type: 'error'
+      });
+    }
+
+  } catch (error: unknown | any) {
+    console.error('Resend verification code error:', error)
+    showToast({
+      message: 'Error',
+      description: error,
+      position: 'top-right',
+      duration: 5000,
+      type: 'error'
+    });
+  } finally {
+    isResendLoading.value = false
   }
 }
 </script>
@@ -121,39 +168,6 @@ const handleRegister = async () => {
 
       <!-- Form Card -->
       <div class="bg-white rounded-lg shadow-sm p-8">
-        <!-- OAuth Section -->
-        <!-- <div class="grid grid-cols-2 gap-3 mb-6">
-          <button
-            type="button"
-            disabled
-            class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="OAuth coming in future release"
-          >
-            <Github class="w-5 h-5" />
-            <span class="ml-2 text-sm font-medium">GitHub</span>
-          </button>
-          <button
-            type="button"
-            disabled
-            class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="OAuth coming in future release"
-          >
-            <Twitter class="w-5 h-5" />
-            <span class="ml-2 text-sm font-medium">Twitter</span>
-          </button>
-        </div> -->
-
-        <!-- Divider -->
-        <!-- <div class="relative mb-6">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-white text-gray-500 text-xs uppercase tracking-wider">
-              Or Continue With
-            </span>
-          </div>
-        </div> -->
 
         <!-- Registration Form -->
         <form class="space-y-4" @submit.prevent="handleRegister">
@@ -230,19 +244,34 @@ const handleRegister = async () => {
               </Button>
             </div>
             <span v-if="passwordError" class="text-red-700">{{ passwordError }}</span>
-            <span v-if="registrationErrorMessage" class="text-red-700">{{ registrationErrorMessage }}</span>
+            <span v-if="errorMessage" class="text-red-700">{{ errorMessage }}</span>
           </div>
 
           <!-- Create Account Button -->
           <button
             type="submit"
-            :disabled="isLoading || !isFormValid"
+            :disabled="isLoading || !isFormValid || isResendConfirmationAvailable"
             class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <span v-if="!isLoading">Create Account</span>
             <span v-else class="flex items-center justify-center">
               <Loader2 class="w-4 h-4 animate-spin mr-2" />
               Creating account...
+            </span>
+          </button>
+
+          <!-- Resend Confirmation Button -->
+          <button
+            v-if="isResendConfirmationAvailable"
+            type="button"
+            v-on:click="handleResendConfirmation"
+            :disabled="isResendLoading || !isResendConfirmationAvailable"
+            class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <span v-if="!isResendLoading">Resend Confirmation Email</span>
+            <span v-else class="flex items-center justify-center">
+              <Loader2 class="w-4 h-4 animate-spin mr-2" />
+              Resending Confirmation...
             </span>
           </button>
         </form>

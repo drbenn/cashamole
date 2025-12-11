@@ -270,24 +270,24 @@ export class AuthQueryService {
   async insertPasswordResetEmailConfirmations(
     userId: string,
     email: string,
-    verificationCode: string,
+    confirmationCode: string,
     expiresAt: Date
   ): Promise<any> {
     const queryText = `
       INSERT INTO "password_reset_email_confirmations" (user_id, email, code, expires_at)
-      VALUES ($1, $2, $3)
+      VALUES ($1, $2, $3, $4)
       RETURNING id;
     `;
 
     const values = [
       userId,
       email,
-      verificationCode,
+      confirmationCode,
       expiresAt
     ];
 
     try {
-      const result = await this.pgPool.query(queryText, values);   
+      const result = await this.pgPool.query(queryText, values);      
       return result.rows[0]
     } catch (error) {
       this.logger.log('warn', `Error: auth-query-service insertPasswordResetEmailConfirmations: ${error}`);

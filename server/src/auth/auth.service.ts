@@ -54,9 +54,11 @@ export class AuthService {
 
       throw new ConflictException({
         message: 'Registration Failed: Email has already been submitted for registration process.',
-        email: dto.email,
-        provider: dto.provider,
-        // reason: 'User already registered with this provider type.'
+        data: {
+          email: dto.email,
+          provider: dto.provider
+          // reason: 'User already registered with this provider type.'
+        }
       });
     }
     if (dto.password) dto.password = await this.hashString(dto.password)
@@ -70,10 +72,32 @@ export class AuthService {
     return accountCreated
   }
 
+  async verifyEmailNewRequest(dto: RequestNewVerificationDto) {
+    const user = await this.authQueryService.findUserByEmail(dto.email)    
+    
+    if (user.providers.email.verified) {
+      this.logger.warn(`New Verfication Request Failed: email already verified.
+        ${JSON.stringify(dto.email)}`);
+
+      throw new ConflictException({
+        message: 'New Verfication Request Failed: email already verified.',
+        data: {
+          email: dto.email,
+        }
+      });
+    }
+
+    await this.sendAccountVerificationEmail(user.id, user.email)
+    
+    const created_at = new Date().toISOString()
+
+    return { email: user.email, created_at: created_at }
+  }
+
   async sendAccountVerificationEmail(userId: string, userEmail: string): Promise<any> {
     const confirmationCode: string = this.generateConfirmationCode()
     const expiresAt: Date = new Date(Date.now() + 60 * 60 * 1000) // 60 min
-    let verificationUrl: string = `${process.env.FRONTEND_URL}/auth/register/verify-email?email=${userEmail}&code=${encodeURIComponent(confirmationCode)}&id=`
+    let verificationUrl: string = `${process.env.FRONTEND_URL}/auth/verify-email?email=${userEmail}&code=${encodeURIComponent(confirmationCode)}&id=`
 
     try {
       const confirmationId = await this.authQueryService.insertRegisterAccountEmailConfirmation(userId, confirmationCode, expiresAt)
@@ -81,7 +105,6 @@ export class AuthService {
     } catch (error: unknown) {
       throw new ConflictException({
         message: 'Account verification failed: Error adding email confirmation record.',
-        // reason: 'Error inserting email confirmation record.'
       });
     }
     
@@ -94,7 +117,6 @@ export class AuthService {
       );
       throw new ConflictException({
         message: 'Account verification failed: Error sending email confirmation to user email.',
-        // reason: 'Error sending email confirmation to user email.'
       });
     }
 
@@ -112,21 +134,18 @@ export class AuthService {
     if (!confirmation) {
       throw new ConflictException({
         message: 'Account verification failed: Incorrect account verification code submitted.',
-        // reason: 'Incorrect account verification code submitted.'
       });
     }
 
     if (confirmation.used_at) {
       throw new ConflictException({
         message: 'Account verification failed: Verification previously completed.',
-        // reason: 'Verification previously completed.'
       });
     }
     
     if (new Date(confirmation.expires_at) < new Date()) {
       throw new ConflictException({
         message: 'Account verification failed: Verification stale. User must verify account registration within 60 minutes of registering account.',
-        // reason: 'Verification stale. User must verify account registration within 60 minutes of registering account.'
       });
     }
 
@@ -147,7 +166,17 @@ export class AuthService {
     
     if (!user) {
       // Case 1: User is not registered via the standard method (404 Not Found)
-      throw new NotFoundException(`User with email '${dto.email}' not found or not registered.`);
+      throw new ConflictException({
+        message: `User with email '${dto.email}' not found.`,
+      })
+    }
+
+    if (!user.providers.email.verified) {
+      // Case 2: User is not previously verified from initial registration through email confirmation
+      throw new ConflictException({
+        message: `User with email '${dto.email}' has not verified email address.`,
+        data: { email: dto.email }
+      })
     }
 
     // 3. Compare the password.
@@ -155,19 +184,21 @@ export class AuthService {
     
     if (!isMatch) {
       // Case 3: Password mismatch (401 Unauthorized)
-      throw new UnauthorizedException('Invalid credentials. Password mismatch.');
+      throw new ConflictException({
+        message: 'Invalid credentials. Password mismatch.',
+      })
     }
     
     // --- SUCCESS PATH ---
     // 4. If successful, generate tokens and build a success response
     const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
     const jwtRefreshToken = await this.generateRefreshJwt();
-    
+
     // 5. Hash and persist the Refresh Token in the database.
     const hashedRefreshToken: string = await this.hashString(jwtRefreshToken);
     const msInFuture: number = process.env.JWT_REFRESH_TOKEN_EXPIRATION ? Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION) : (7 * 24 * 60 * 60 * 1000)  // 7 days fallback
     const expirationDate: Date = new Date(Date.now() + msInFuture); 
-    
+
     await this.authQueryService.insertRefreshTokenHash(
       hashedRefreshToken, 
       user.id, 
@@ -179,6 +210,7 @@ export class AuthService {
 
     return {
       message: 'Login Success',
+      success: true,
       user: user,
       jwtAccessToken: jwtAccessToken,
       jwtRefreshToken: jwtRefreshToken,
@@ -188,6 +220,18 @@ export class AuthService {
 
   async requestPasswordReset(dto: RequestPasswordResetDto): Promise<any> {
     const user = await this.authQueryService.findUserByEmail(dto.email)
+
+    if (!user.providers.email.verified) {
+      this.logger.warn(`Password Reset Request Failed: account email not verified.
+        ${JSON.stringify(dto.email)}`);
+
+      throw new ConflictException({
+        message: 'Password Reset Request Failed: account email not verified.',
+        data: {
+          email: dto.email,
+        }
+      });
+    }
     const confirmationCode: string = this.generateConfirmationCode()
     const expiresAt: Date = new Date(Date.now() + 60 * 60 * 1000) // 60 min
     const confirmation = await this.authQueryService.insertPasswordResetEmailConfirmations(user.id, dto.email, confirmationCode, expiresAt)
@@ -196,8 +240,7 @@ export class AuthService {
     try {
       const smtpEmailResponse =  await this.emailService.sendResetPasswordLinkEmail(user.email, resetUrl)
       return {
-        success: true,
-        data: smtpEmailResponse
+        data: { email: dto.email, created_at: new Date().toISOString(), smtpEmailResponse: smtpEmailResponse }
       }
     } catch (error: unknown) {
       this.logger.log(
@@ -206,8 +249,7 @@ export class AuthService {
       );
       throw new ConflictException({
         message: 'Password reset request failed: Error sending password reset request email to user email.',
-        // reason: 'Error sending email confirmation to user email.'
-      });
+      })
     }
   }
 
@@ -217,19 +259,19 @@ export class AuthService {
     if (!confirmation) {
       throw new ConflictException({
         message: 'Reset password failed: Incorrect code submitted.',
-      });
+      })
     }
 
     if (confirmation.used_at) {
       throw new ConflictException({
         message: 'Account password failed: Reset confirmation previously completed. Request new password reset.',
-      });
+      })
     }
     
     if (new Date(confirmation.expires_at) < new Date()) {
       throw new ConflictException({
         message: 'Password reset failed: Verification stale. User must reset password within 60 minutes of requesting password reset.',
-      });
+      })
     }
 
     // hash new password for storage

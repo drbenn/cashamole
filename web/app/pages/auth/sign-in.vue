@@ -3,18 +3,34 @@ import { ref } from 'vue'
 import { Box, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types'
-import type { LoginUserDto } from '@common-types'
+import type { LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto } from '@common-types'
+import { z } from 'zod'
 
 const form = ref({
   email: '',
   password: '',
 })
 
-const { login } = useAuthService()
+const { login, requestNewVerificationEmail } = useAuthService()
 const { setUserData } = useUserStore()
+const { showToast } = useAppStore()
 
+const emailSchema = z.string().email()
 const showPassword = ref(false)
 const isLoading = ref(false)
+const isResendLoading = ref(false)
+const errorMessage = ref('')
+const isResendConfirmationAvailable = ref(false)
+const emailForResend = ref('')
+
+const isEmailValid = computed((): boolean => {
+  try {
+    emailSchema.parse(form.value.email)
+    return true
+  } catch {
+    return false
+  }
+})
 
 const handleLogin = async () => {
   if (!form.value.email || !form.value.password) {
@@ -22,6 +38,7 @@ const handleLogin = async () => {
     return
   }
 
+  errorMessage.value = ''
   isLoading.value = true
 
   try {
@@ -30,22 +47,59 @@ const handleLogin = async () => {
       password: form.value.password
     }
 
-    const response: ApiResponse = await login(dto)
-    console.log('resss: ', response);
+    const response: ApiResponse | any = await login(dto)
     if (response.success) {
       setUserData(response.data)
       navigateTo({
         path: '/home',
       })
+    } else {
+      errorMessage.value = response.error
+
+      if (response.error.includes('not verified')) {
+        isResendConfirmationAvailable.value = true
+        emailForResend.value = response.data.email
+      }
     }
-    console.log('Login attempt:', form.value)
-    // Simulated success
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log('Login successful!')
   } catch (error) {
     console.error('Login error:', error)
+    errorMessage.value = 'Error communicating with server'
   } finally {
     isLoading.value = false
+  }
+}
+
+const handleResendConfirmation = async () => {
+  isResendLoading.value = true
+  try {
+    const dto: RequestNewVerificationDto = { email: emailForResend.value }
+    const response: ApiResponse = await requestNewVerificationEmail(dto)
+    if (response.success) {
+      navigateTo({
+        path: '/auth/confirmation-resend-success',
+        query: {
+          email: response.data.email,
+          created_at: response.data.created_at
+        }})
+    } else {
+      showToast({
+        message: response.error,
+        position: 'top-right',
+        duration: 5000,
+        type: 'error'
+      });
+    }
+  } catch (error: unknown | any) {
+    console.error('Resend verification code error:', error)
+    showToast({
+      message: 'Error',
+      description: error,
+      position: 'top-right',
+      duration: 5000,
+      type: 'error'
+    });
+  } finally {
+    isResendLoading.value = false
   }
 }
 </script>
@@ -111,17 +165,19 @@ const handleLogin = async () => {
           <div class="flex items-center justify-end pt-0 w-full">
             <NuxtLink
               to="/auth/request-password-reset"
-              class="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+              class="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors h-4"
             >
               Forgot Password?
             </NuxtLink>
+            
           </div>
+          <div v-if="true" class="text-red-700">{{ errorMessage }}</div>
 
           <!-- Sign In Button -->
           <button
             type="submit"
-            :disabled="isLoading"
-            class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-0"
+            :disabled="isLoading || !isEmailValid || form.password.length < 8 || isResendConfirmationAvailable"
+            class="w-full bg-gray-500 text-white font-semibold py-2.5 rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1"
           >
             <span v-if="!isLoading">Sign In</span>
             <span v-else class="flex items-center justify-center">
@@ -130,6 +186,21 @@ const handleLogin = async () => {
             </span>
           </button>
         </form>
+
+        <!-- Resend Confirmation Button -->
+        <button
+          v-if="isResendConfirmationAvailable"
+          type="button"
+          v-on:click="handleResendConfirmation"
+          :disabled="isResendLoading || !isResendConfirmationAvailable"
+          class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-4"
+        >
+          <span v-if="!isResendLoading">Resend Confirmation Email</span>
+          <span v-else class="flex items-center justify-center">
+            <Loader2 class="w-4 h-4 animate-spin mr-2" />
+            Resending Confirmation...
+          </span>
+        </button>
       </div>
 
       <!-- Register Link -->

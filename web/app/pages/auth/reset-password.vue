@@ -13,9 +13,11 @@ const form = ref({
 const route = useRoute();
 const emailQuery = route.query.email as string || ''
 const codeQuery = route.query.code as string || ''
+const idQuery = route.query.id as string || ''
 
 const { setUserData } = useUserStore()
 const { resetPassword } = useAuthService()
+const { showToast } = useAppStore()
 
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
@@ -84,6 +86,7 @@ const handleResetPassword = async () => {
     const dto: ResetPasswordDto = {
       code: codeQuery,
       email: emailQuery,
+      id: idQuery,
       password: form.value.confirmPassword
     }
 
@@ -94,6 +97,13 @@ const handleResetPassword = async () => {
       errorMessage.value = response.error
     }
     else if (response.success && response.data) {
+      showToast({
+        message: 'Password Reset',
+        description: 'Password updated successfully!',
+        position: 'top-right',
+        duration: 5000,
+        type: 'success'
+      });
       setUserData(response.data)
       navigateTo({
         path: '/home',

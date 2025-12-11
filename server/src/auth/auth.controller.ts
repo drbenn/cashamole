@@ -28,9 +28,9 @@ export class AuthController {
     @Req() req: Request,                          // req for capturing and logging ip
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
-      const login = await this.authService.loginUser(dto); 
-      this.sendLoginCookies(res, login.jwtAccessToken, login.jwtRefreshToken);
-      return login
+      const response = await this.authService.loginUser(dto);
+      this.sendLoginCookies(res, response.jwtAccessToken, response.jwtRefreshToken);
+      return response
   };
 
   private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {   
@@ -66,8 +66,6 @@ export class AuthController {
 
     // 2. Return a successful, standardized response
     return { 
-      statusCode: 200,
-      success: true,
       message: 'Logged out successfully' 
     };
   }
@@ -81,9 +79,17 @@ export class AuthController {
     const user = await this.authService.verifyAccount(dto)
     return { 
       message: 'Account verified successfully!',
-      success: true,
       user: user
     }
+  }
+
+  @Post('verify-email-new-request')
+  // @UseGuards(ThrottlerGuard)
+  // @Throttle({ default: { limit: 5, ttl: 60000 }}) // 5 attempts per min
+  async verifyEmailNewRequest(
+    @Body() dto: CommonTypes.RequestNewVerificationDto 
+  ) {
+    return await this.authService.verifyEmailNewRequest(dto);
   }
 
   @Post('request-password-reset')
@@ -94,8 +100,6 @@ export class AuthController {
   ) {
     await this.authService.requestPasswordReset(dto)
     return {
-      statusCode: 200,
-      success: true,
       message: 'Reset password info emailed to user.',
     }
   }
@@ -108,8 +112,6 @@ export class AuthController {
   ) {
     const user = await this.authService.resetPassword(dto)
     return {
-      statusCode: 200,
-      success: true,
       message: 'User password reset successfully.',
       data: user
     }
