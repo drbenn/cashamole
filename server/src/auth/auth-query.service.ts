@@ -3,14 +3,8 @@ import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Pool } from 'pg';
 import { PG_CONNECTION } from 'src/database/database.constants';
+import { v4 as uuidv4 } from 'uuid';
 
-    // try {
-    //   const result = await this.pgPool.query('SELECT id, email FROM users WHERE id = $1', [id]);
-    //   return result.rows[0];
-    // } catch (error: Error | unknown) {
-
-    // }
-    
 @Injectable()
 export class AuthQueryService {
   // Inject the singleton Pool instance
@@ -75,7 +69,6 @@ export class AuthQueryService {
   }
 
   async insertUser(user: CreateUserDto): Promise<any> {
-    const refreshToken: string = '6a5s1dfasdf651'
     const providerKey: string = user.provider
 
     const initialProviders: Record<string, any> = {
@@ -88,16 +81,19 @@ export class AuthQueryService {
     };
 
     const queryText = `
-      INSERT INTO "users" (email, providers, profiles, settings)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO "users" (id, email, providers, profiles, settings)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id, email, created_at;
     `;
 
+    const id = uuidv4()
+
     const values = [
-      user.email,                               // $1: email (VARCHAR)
-      initialProviders,                         // $2: providers (JSONB object)
-      {},                                       // $3: profiles (empty object for JSONB)
-      {},                                       // $4: settings (empty object for JSONB)
+      id,                                       // $1: id as uuid
+      user.email,                               // $2: email (VARCHAR)
+      initialProviders,                         // $3: providers (JSONB object)
+      {},                                       // $4: profiles (empty object for JSONB)
+      {},                                       // $5: settings (empty object for JSONB)
     ];
 
     try {
@@ -115,12 +111,15 @@ export class AuthQueryService {
     expiresAt: Date
   ): Promise<any> {
     const queryText = `
-      INSERT INTO "email_confirmations" (user_id, code, expires_at)
-      VALUES ($1, $2, $3)
+      INSERT INTO "email_confirmations" (id, user_id, code, expires_at)
+      VALUES ($1, $2, $3, $4)
       RETURNING id;
     `;
 
+    const id = uuidv4()
+
     const values = [
+      id,
       userId,
       verificationCode,
       expiresAt
@@ -247,11 +246,14 @@ export class AuthQueryService {
   ): Promise<any> {
 
     const queryText = `
-      INSERT INTO "user_refresh_tokens" (token_hash, user_id, expires_at)
-      VALUES ($1, $2, $3);
+      INSERT INTO "user_refresh_tokens" (id, token_hash, user_id, expires_at)
+      VALUES ($1, $2, $3, $4);
     `;
 
+    const id = uuidv4()
+
     const values = [
+      id,
       hashedRefreshToken,
       userId,
       expirationDate,
@@ -266,6 +268,35 @@ export class AuthQueryService {
     }
   }
 
+  async insertUserLoginHistory(
+    userId: string,
+    ipAddress: string,
+    loginType: string,
+  ): Promise<any> {
+
+    const queryText = `
+      INSERT INTO "user_login_history" (id, user_id, ip_address, type)
+      VALUES ($1, $2, $3, $4);
+    `;
+
+    const id = uuidv4()
+
+    const values = [
+      id,
+      userId,
+      ipAddress,
+      loginType,
+    ];
+
+    try {
+      const result = await this.pgPool.query(queryText, values);      
+      return result.rows[0];
+    } catch (error) {
+      this.logger.log('warn', `Error: auth-query-service insertUserLoginHistory: ${error}`);
+      throw new Error('Error: auth-query-service insertUserLoginHistory');
+    }
+  }
+
 
   async insertPasswordResetEmailConfirmations(
     userId: string,
@@ -274,12 +305,15 @@ export class AuthQueryService {
     expiresAt: Date
   ): Promise<any> {
     const queryText = `
-      INSERT INTO "password_reset_email_confirmations" (user_id, email, code, expires_at)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO "password_reset_email_confirmations" (id, user_id, email, code, expires_at)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id;
     `;
 
+    const id = uuidv4()
+
     const values = [
+      id,
       userId,
       email,
       confirmationCode,

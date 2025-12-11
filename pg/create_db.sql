@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     providers JSONB DEFAULT '{}'::jsonb,
     profiles JSONB DEFAULT '{}'::jsonb,
@@ -8,17 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS password_resets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    reset_token VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    used_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS user_login_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   login_at TIMESTAMP DEFAULT NOW(),
   ip_address INET NOT NULL,
@@ -39,4 +30,14 @@ CREATE TABLE email_confirmations (
   expires_at TIMESTAMP NOT NULL,
   used_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE password_reset_email_confirmations (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );

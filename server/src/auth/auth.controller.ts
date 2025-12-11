@@ -2,7 +2,7 @@ import * as CommonTypes from '@common-types';
 import { Body, Controller, Inject, InternalServerErrorException, Logger, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import  type { Response } from 'express';
+import type { Response, Request } from 'express';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('auth')
@@ -28,9 +28,10 @@ export class AuthController {
     @Req() req: Request,                          // req for capturing and logging ip
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
-      const response = await this.authService.loginUser(dto);
-      this.sendLoginCookies(res, response.jwtAccessToken, response.jwtRefreshToken);
-      return response
+    const ipAddress: string = this.authService.getClientIp(req)
+    const response = await this.authService.loginUser(dto, ipAddress);
+    this.sendLoginCookies(res, response.jwtAccessToken, response.jwtRefreshToken);
+    return response
   };
 
   private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {   

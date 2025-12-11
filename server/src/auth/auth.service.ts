@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email.service';
+import  type { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -160,7 +161,7 @@ export class AuthService {
    * Authenticates a standard user (email/password).
    * Throws exceptions for failure cases.
    */
-  async loginUser(dto: LoginUserDto): Promise<any> {
+  async loginUser(dto: LoginUserDto, ipAddress: string): Promise<any> {
     // 1. Find the user login record.
     const user: any = await this.authQueryService.findUserByEmail(dto.email)
     
@@ -207,6 +208,9 @@ export class AuthService {
 
     // 6. remove providers email hashed password from response
     delete user.providers.email.password
+
+    // 7. log successful login
+    await this.authQueryService.insertUserLoginHistory(user.id, ipAddress,'web')
 
     return {
       message: 'Login Success',
@@ -279,6 +283,20 @@ export class AuthService {
 
     const userAsSuccessfulResponse = await this.authQueryService.updatePassword(dto, confirmation.user_id)
     return userAsSuccessfulResponse
+  }
+  
+  getClientIp(req: Request): string {
+    const forwardedIp = req.headers['x-forwarded-for'];
+    
+    if (forwardedIp) {
+      // If it's a list, the client's IP is the first one.
+      // Ensure you handle forwardedIp being a string or string[] if using TypeScript strict mode.
+      const ipList = Array.isArray(forwardedIp) ? forwardedIp[0] : forwardedIp.split(',')[0];
+      return ipList.trim();
+    }
+    
+    // Fallback for local development or direct connections
+    return req.ip || 'unknown'; 
   }
 
 
