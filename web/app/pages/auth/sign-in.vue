@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { Box, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types'
-import type { LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto } from '@common-types'
+import type { LoginUserDto, RequestNewVerificationDto } from '@common-types'
 import { z } from 'zod'
 
 const form = ref({
@@ -47,7 +47,7 @@ const handleLogin = async () => {
       password: form.value.password
     }
 
-    const response: ApiResponse | any = await login(dto)
+    const response: ApiResponse = await login(dto)
     if (response.success) {
       setUserData(response.data)
       navigateTo({

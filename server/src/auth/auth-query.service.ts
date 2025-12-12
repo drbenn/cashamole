@@ -242,18 +242,20 @@ export class AuthQueryService {
   async insertRefreshTokenHash(
     hashedRefreshToken: string,
     userId: string,
-    expirationDate: Date
+    expirationDate: Date,
+    jti: string
   ): Promise<any> {
 
     const queryText = `
-      INSERT INTO "user_refresh_tokens" (token_hash, user_id, expires_at)
-      VALUES ($1, $2, $3);
+      INSERT INTO "user_refresh_tokens" (token_hash, user_id, expires_at, jti)
+      VALUES ($1, $2, $3, $4);
     `;
 
     const values = [
       hashedRefreshToken,
       userId,
       expirationDate,
+      jti
     ];
 
     try {
@@ -266,16 +268,16 @@ export class AuthQueryService {
   }
 
   // get relevant refresh token for login 
-  async getRefreshTokenRecord(hashedRefreshToken: string): Promise<any> {
-    console.log('serach token : ', hashedRefreshToken);
+  async getRefreshTokenRecord(jti: string): Promise<any> {
+    console.log('serach jti : ', jti);
     
     const queryText = `
       SELECT * from user_refresh_tokens
-      WHERE token_hash = $1;
+      WHERE jti = $1;
     `;
 
     const values = [
-      hashedRefreshToken,
+      jti,
     ];
 
     try {
@@ -288,7 +290,7 @@ export class AuthQueryService {
   }
 
   // delete old refresh token and insert new refresh token from cached login
-  async rotateRefreshToken(userId: string, newTokenHash: string): Promise<void> {
+  async rotateRefreshToken(userId: string, jti: string, newTokenHash: string): Promise<any> {
     // Delete all old tokens for this user
     await this.pgPool.query(
       `DELETE FROM user_refresh_tokens WHERE user_id = $1`,
@@ -298,9 +300,14 @@ export class AuthQueryService {
     // Insert the new one
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
     const result = await this.pgPool.query(
-      `INSERT INTO user_refresh_tokens (token_hash, user_id, expires_at) 
-      VALUES ($1, $2, $3) RETURNING *;`,
-      [newTokenHash, userId, expiresAt]
+      `INSERT INTO user_refresh_tokens (token_hash, user_id, expires_at, jti) 
+      VALUES ($1, $2, $3, $4) RETURNING *;`,
+      [
+        newTokenHash,
+        userId,
+        expiresAt,
+        jti
+      ]
     );
     return result.rows[0]
   }

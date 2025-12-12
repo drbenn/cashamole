@@ -10,11 +10,18 @@ console.log('main baseUrl: ', baseUrl);
 console.log('config: ', config);
 
 const { loginCachedUser } = useAuthService()
+const { setUserData } = useUserStore()
 
 const cachedLogin = await loginCachedUser()
 
 console.log(cachedLogin);
 
+if (cachedLogin.success) {
+  setUserData(cachedLogin.data)
+  navigateTo({
+    path: '/home',
+  })
+}
 
 
 </script>

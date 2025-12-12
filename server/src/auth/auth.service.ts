@@ -43,27 +43,45 @@ export class AuthService {
       return jwtAccessToken;
   }
 
-async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }> {
-    
-    // 1. Generate the JTI (Unique ID)
-    const jti = uuidv4(); 
-    
-    const payload = { 
-        sub: userId,
-        jti: jti,             // The lookup key
-        type: 'refresh',
-    };
-    
-    // 2. Sign the Token
-    // Set lifespan to 7-30 days. Use a unique refresh secret.
-    const jwtRefreshToken = this.jwtService.sign(payload, {
-        secret: this.configService.get<string>('JWT_SECRET'), 
-        expiresIn: '7d' 
-    });
-    
-    // 3. Return the token (to send to client) and the JTI (to store in DB)
-    return { token: jwtRefreshToken, jti }; 
-}
+  async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }> {
+      
+      // 1. Generate the JTI (Unique ID)
+      const jti = uuidv4(); 
+      
+      const payload = { 
+          sub: userId,
+          jti: jti,             // The lookup key
+          type: 'refresh',
+      };
+      
+      // 2. Sign the Token
+      // Set lifespan to 7-30 days. Use a unique refresh secret.
+      const jwtRefreshToken = this.jwtService.sign(payload, {
+          secret: this.configService.get<string>('JWT_SECRET'), 
+          expiresIn: '7d' 
+      });
+      
+      // 3. Return the token (to send to client) and the JTI (to store in DB)
+      return { token: jwtRefreshToken, jti }; 
+  }
+
+  // Utility function to decode the JWT payload and extract the JTI
+  private extractJti(refreshToken: string): string {
+    console.log("REFRESH TOKEN RECEIVED:", refreshToken);
+      try {
+          // NOTE: We only decode, not verify the signature yet.
+          const [header, payload, signature] = refreshToken.split('.');
+          const decodedPayload = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+          
+          if (!decodedPayload || !decodedPayload.jti) {
+              throw new Error('JTI missing from token payload.');
+          }
+          return decodedPayload.jti;
+      } catch (e) {
+          throw new UnauthorizedException('Invalid refresh token format.');
+      }
+  }
+
   private generateConfirmationCode(): string {
     return (parseInt(randomBytes(3).toString('hex'), 16) % 900000 + 100000).toString();
   }
@@ -215,7 +233,7 @@ async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }
     // --- SUCCESS PATH ---
     // 4. If successful, generate tokens and build a success response
     const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
-    const jwtRefreshToken = await this.generateRefreshJwt();
+    const { token: jwtRefreshToken, jti } = await this.generateRefreshJwt(user.id);
 
     // 5. Hash and persist the Refresh Token in the database.
     const hashedRefreshToken: string = await this.hashString(jwtRefreshToken);
@@ -225,7 +243,8 @@ async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }
     await this.authQueryService.insertRefreshTokenHash(
       hashedRefreshToken, 
       user.id, 
-      expirationDate
+      expirationDate,
+      jti
     );
 
     // 6. remove providers email hashed password from response
@@ -236,7 +255,6 @@ async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }
 
     return {
       message: 'Login Success',
-      success: true,
       user: user,
       jwtAccessToken: jwtAccessToken,
       jwtRefreshToken: jwtRefreshToken,
@@ -244,23 +262,49 @@ async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }
   }
 
   async loginCachedUser(refresh_token: string): Promise<any> {
-    const hashedRefreshToken = await this.hashString(refresh_token);
+    
+    const jti = this.extractJti(refresh_token);
 
-    const record = await this.authQueryService.getRefreshTokenRecord(hashedRefreshToken)
-
-    if (!record || new Date() > new Date(record.expires_at)) {
+    // 1. LOOKUP BY JTI
+    const record = await this.authQueryService.getRefreshTokenRecord(jti);
+    
+    // Handle Case A: Record not found (token was revoked or never existed)
+    if (!record) {
       throw new ConflictException({
-        message: 'Login cached user failed: Invalid or expired refresh token.',
+        message: 'Login cached user failed: Invalid refresh token ID or revoked.',
       });
     }
 
+    // Handle Case B: Record found, but expired (Check 1)
+    if (new Date() > new Date(record.expires_at)) {
+      throw new ConflictException({
+        message: 'Login cached user failed: Expired refresh token.',
+      });
+    }
+
+    // 2. VERIFY HASH (The Security Check)
+    const isMatch: boolean = await this.compareHashedString(refresh_token, record.token_hash);
+    
+    // Handle Case C: Token found and not expired, BUT hash does not match (Tampering)
+    if (!isMatch) {
+      // NOTE: You may want to log or report this as a high-security risk (attempted tampering)
+      throw new ConflictException({
+        message: 'Login cached user failed: Token verification failed (tampered).',
+      });
+    }
+    
+    // --- SUCCESS PATH (Rotation) ---
     const user = await this.authQueryService.findUserById(record.user_id)
 
     const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
-    const jwtRefreshToken = await this.generateRefreshJwt();
-    const newHashedRefreshToken: string = await this.hashString(jwtRefreshToken)
+    const { token: newJwtRefreshToken, jti: newJti } = await this.generateRefreshJwt(record.user_id);
+    const newHashedRefreshToken: string = await this.hashString(newJwtRefreshToken)
 
-    const newHashedRefreshTokenResult = await this.authQueryService.rotateRefreshToken(user.id, newHashedRefreshToken)
+    await this.authQueryService.rotateRefreshToken(
+      user.id,
+      newJti,
+      newHashedRefreshToken
+    )
 
     delete user.providers.email.password
 
@@ -268,7 +312,7 @@ async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }
       message: 'Cached Login Success',
       user: user,
       jwtAccessToken: jwtAccessToken,
-      jwtRefreshToken: jwtRefreshToken
+      jwtRefreshToken: newJwtRefreshToken
     }
   }
 

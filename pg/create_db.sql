@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS user_login_history (
 );
 
 CREATE TABLE IF NOT EXISTS  user_refresh_tokens (
-  token_hash VARCHAR(255) PRIMARY KEY, -- Store the hash of the token, not the token itself, for security
+  jti VARCHAR(55) PRIMARY KEY,  -- jwt id to actually reference the token for security APPPARENTLY
+  token_hash VARCHAR(255), -- Store the hash of the token, not the token itself, for security
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
