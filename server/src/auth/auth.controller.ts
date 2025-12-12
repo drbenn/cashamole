@@ -1,5 +1,5 @@
 import * as CommonTypes from '@common-types';
-import { Body, Controller, Inject, InternalServerErrorException, Logger, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, Inject, InternalServerErrorException, Logger, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Response, Request } from 'express';
@@ -34,11 +34,42 @@ export class AuthController {
     return response
   };
 
+  @Get('login-cached')
+  async loginCachedUser(
+    @Req() req: Request,                          // req for capturing and logging ip
+    @Res({ passthrough: true }) res: Response,    // Enables passing response
+  ): Promise<any> {
+    console.log('login cachced');
+    const sessionToken = req.cookies['jwt'];
+    const refreshToken = req.cookies['refresh_token'];
+    console.log('sessionToken: ', sessionToken);
+    console.log('refreshToken: ', )
+    // return sessionToken
+
+    const refreshTokenCookie = req.cookies['refresh_token'];
+    
+    if (!refreshTokenCookie) {
+      // throw new ConflictException({
+      //   message: 'Login cached user failed: No refresh token found.',
+      // });
+      throw new UnauthorizedException('No refresh token found');
+    }
+      
+    const data = await this.authService.loginCachedUser(refreshTokenCookie)
+
+    this.sendLoginCookies(res, data.jwtAccessToken, data.jwtRefreshToken);
+  
+    return { 
+      user: data.user,
+      message: 'Session restored'
+    };
+  };
+
   private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {   
     const baseOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,          // Use 'as const' for TypeScript literal type safety
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,         // Use 'as const' for TypeScript literal type safety
       path: '/',                            // Ensure the cookie is cleared from the root path
     };
     res.cookie('jwt', jwtAccessToken, {
@@ -50,6 +81,8 @@ export class AuthController {
       ...baseOptions,
       maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION),  // Expiration time
     });
+    console.log('sending cookies: ', jwtAccessToken, jwtRefreshToken);
+    
   };
 
   @Post('logout')

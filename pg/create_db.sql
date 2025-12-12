@@ -41,3 +41,35 @@ CREATE TABLE password_reset_email_confirmations (
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    transaction_date TIMESTAMP NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    amount NUMERIC(11,2),
+    category VARCHAR(30),
+    vendor VARCHAR(30),
+    note TEXT,
+    active BOOLEAN,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE snapshots (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    snapshot_date TIMESTAMP NOT NULL,
+    category VARCHAR(20) NOT NULL,
+    amount NUMERIC(11,2),
+    party VARCHAR(30),
+    title VARCHAR(30),
+    note TEXT,
+    active BOOLEAN,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    asset_valuation VARCHAR(10),
+    liability_type VARCHAR(10),
+    liability_interest_rate NUMERIC(4,4),
+    liability_total_loan_value NUMERIC(11,2)
+);

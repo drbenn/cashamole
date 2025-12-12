@@ -7,6 +7,8 @@ import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email.service';
 import  type { Request } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +17,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly authQueryService: AuthQueryService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
 
@@ -30,23 +33,42 @@ export class AuthService {
   };
 
   async generateAccessJwt(userId: string, email: string): Promise<string> {
-    const payload: JwtPayload = { sub: userId, email: email};
-    const jwtAccessToken = this.jwtService.sign(payload, { expiresIn: '7d' });
-    return jwtAccessToken;
-  };
+      const payload: JwtPayload = { sub: userId, email: email, type: 'access' };
+      
+      // Set lifespan to 5-15 minutes!
+      const jwtAccessToken = this.jwtService.sign(payload, { 
+          secret: this.configService.get<string>('JWT_SECRET'),
+          expiresIn: '15m' 
+      });
+      return jwtAccessToken;
+  }
 
-  async generateRefreshJwt(): Promise<string> {
-    const jwtToken = randomBytes(64).toString('hex'); // Generate a random token
-    const saltRounds = 10;
-    const hashedJwtRefreshToken = await bcrypt.hash(jwtToken, saltRounds);
-    return hashedJwtRefreshToken;
-  };
-
+async generateRefreshJwt(userId: string): Promise<{ token: string, jti: string }> {
+    
+    // 1. Generate the JTI (Unique ID)
+    const jti = uuidv4(); 
+    
+    const payload = { 
+        sub: userId,
+        jti: jti,             // The lookup key
+        type: 'refresh',
+    };
+    
+    // 2. Sign the Token
+    // Set lifespan to 7-30 days. Use a unique refresh secret.
+    const jwtRefreshToken = this.jwtService.sign(payload, {
+        secret: this.configService.get<string>('JWT_SECRET'), 
+        expiresIn: '7d' 
+    });
+    
+    // 3. Return the token (to send to client) and the JTI (to store in DB)
+    return { token: jwtRefreshToken, jti }; 
+}
   private generateConfirmationCode(): string {
     return (parseInt(randomBytes(3).toString('hex'), 16) % 900000 + 100000).toString();
   }
 
-  async registerUser(dto: CreateUserDto) {
+  async registerUser(dto: CreateUserDto) {    
     const isUserEmailExisting: { email: string} | undefined = await this.authQueryService.checkIsExistingEmail(dto.email)
 
     if (isUserEmailExisting) {
@@ -218,6 +240,35 @@ export class AuthService {
       user: user,
       jwtAccessToken: jwtAccessToken,
       jwtRefreshToken: jwtRefreshToken,
+    }
+  }
+
+  async loginCachedUser(refresh_token: string): Promise<any> {
+    const hashedRefreshToken = await this.hashString(refresh_token);
+
+    const record = await this.authQueryService.getRefreshTokenRecord(hashedRefreshToken)
+
+    if (!record || new Date() > new Date(record.expires_at)) {
+      throw new ConflictException({
+        message: 'Login cached user failed: Invalid or expired refresh token.',
+      });
+    }
+
+    const user = await this.authQueryService.findUserById(record.user_id)
+
+    const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
+    const jwtRefreshToken = await this.generateRefreshJwt();
+    const newHashedRefreshToken: string = await this.hashString(jwtRefreshToken)
+
+    const newHashedRefreshTokenResult = await this.authQueryService.rotateRefreshToken(user.id, newHashedRefreshToken)
+
+    delete user.providers.email.password
+
+    return {
+      message: 'Cached Login Success',
+      user: user,
+      jwtAccessToken: jwtAccessToken,
+      jwtRefreshToken: jwtRefreshToken
     }
   }
 

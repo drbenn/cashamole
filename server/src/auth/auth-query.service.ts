@@ -246,14 +246,11 @@ export class AuthQueryService {
   ): Promise<any> {
 
     const queryText = `
-      INSERT INTO "user_refresh_tokens" (id, token_hash, user_id, expires_at)
-      VALUES ($1, $2, $3, $4);
+      INSERT INTO "user_refresh_tokens" (token_hash, user_id, expires_at)
+      VALUES ($1, $2, $3);
     `;
 
-    const id = uuidv4()
-
     const values = [
-      id,
       hashedRefreshToken,
       userId,
       expirationDate,
@@ -266,6 +263,46 @@ export class AuthQueryService {
       this.logger.log('warn', `Error: auth-query-service insertRefreshTokenHash: ${error}`);
       throw new Error('Error: auth-query-service insertRefreshTokenHash');
     }
+  }
+
+  // get relevant refresh token for login 
+  async getRefreshTokenRecord(hashedRefreshToken: string): Promise<any> {
+    console.log('serach token : ', hashedRefreshToken);
+    
+    const queryText = `
+      SELECT * from user_refresh_tokens
+      WHERE token_hash = $1;
+    `;
+
+    const values = [
+      hashedRefreshToken,
+    ];
+
+    try {
+      const result = await this.pgPool.query(queryText, values);
+      return result.rows[0];
+    } catch (error) {
+      this.logger.log('warn', `Error: auth-query-service getRefreshTokenRecord: ${error}`);
+      throw new Error('Error: auth-query-service getRefreshTokenRecord');
+    }
+  }
+
+  // delete old refresh token and insert new refresh token from cached login
+  async rotateRefreshToken(userId: string, newTokenHash: string): Promise<void> {
+    // Delete all old tokens for this user
+    await this.pgPool.query(
+      `DELETE FROM user_refresh_tokens WHERE user_id = $1`,
+      [userId]
+    );
+    
+    // Insert the new one
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+    const result = await this.pgPool.query(
+      `INSERT INTO user_refresh_tokens (token_hash, user_id, expires_at) 
+      VALUES ($1, $2, $3) RETURNING *;`,
+      [newTokenHash, userId, expiresAt]
+    );
+    return result.rows[0]
   }
 
   async insertUserLoginHistory(

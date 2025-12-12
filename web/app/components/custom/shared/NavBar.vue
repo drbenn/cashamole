@@ -9,7 +9,8 @@ const { isLoggedIn } = storeToRefs(userStore)
 const { logout } = useUserStore()
 
 const allNavigation = [
-  { name: 'Home', to: '/', auth: 'always' },
+  { name: 'Landing', to: '/', auth: 'always' },
+  { name: 'Home', to: '/home', auth: 'loggedIn' },
   { name: 'Forgot Password', to: '/auth/request-password-reset', auth: 'loggedOut' },
   { name: 'Reset Password', to: '/auth/reset-password', auth: 'loggedOut' },
   { name: 'Verify Email', to: '/auth/verify-email', auth: 'loggedOut' },

@@ -3,10 +3,18 @@
 import { Toaster } from '@/components/ui/sonner'
 import NavBar from '@/components/custom/shared/NavBar.vue';
 import Footer from './components/custom/shared/Footer.vue';
+import { useAuthService } from './services/useAuthService';
 const config = useRuntimeConfig();
 const baseUrl = config.public.apiBaseUrl;
 console.log('main baseUrl: ', baseUrl);
 console.log('config: ', config);
+
+const { loginCachedUser } = useAuthService()
+
+const cachedLogin = await loginCachedUser()
+
+console.log(cachedLogin);
+
 
 
 </script>

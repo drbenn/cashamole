@@ -26,7 +26,24 @@ export const useAuthService = () => {
       const response = await $fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         body: dto,
+        credentials: 'include'  // must include credentials on login in order to accept the jwt cookies received in response
       })
+      return { success: true, data: response }
+    }
+    catch (err) {
+      const error = err as FetchError
+      return { success: false, error: error.data?.message, data: error.data?.data }
+    }
+  }
+
+  const loginCachedUser = async (): Promise<ApiResponse> => {
+    try {
+      const response = await $fetch(`${apiBase}/auth/login-cached`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+      console.log(response);
+      
       return { success: true, data: response }
     }
     catch (err) {
@@ -105,6 +122,7 @@ export const useAuthService = () => {
   return {
     register,
     login,
+    loginCachedUser,
     verifyEmail,
     requestNewVerificationEmail,
     requestPasswordReset,

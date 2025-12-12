@@ -32,6 +32,8 @@ export interface ResetPasswordDto {
 export type JwtPayload = {
     sub: string; // Subject (User ID)
     email: string;
+    jti?: string  // JWT id(unique lookup key)
+    type?: string
 };
 
 export interface User {
