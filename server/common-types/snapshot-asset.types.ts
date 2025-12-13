@@ -15,20 +15,19 @@ export interface SnapshotAssetDto {
 }
 
 
-export interface CreateSnapshotItemBodyDto {
+export interface CreateSnapshotAssetDto {
     snapshot_id: string;
-    category: 'asset' | 'liability';
 }
 
-export interface ServiceCreateSnapshotItemDto extends CreateSnapshotItemBodyDto {
+export interface ServiceCreateSnapshotAssetDto extends CreateSnapshotAssetDto {
     user_id: string; // Verified from JWT
 }
 
 export interface UpdateSnapshotAssetFieldDto {
-snapshot_id: string; // Header ID for security check
-    // Restricts updatable fields to all fields EXCEPT the critical system/linkage ones
-    field: keyof Omit<SnapshotAssetDto, 
-        'id' | 'snapshot_id' | 'user_id' | 'created_at' | 'updated_at' | 'category'
-    >; 
-    value: any; 
+  snapshot_id: string; // Header ID for security check
+  // Restricts updatable fields to all fields EXCEPT the critical system/linkage ones
+  field: keyof Omit<SnapshotAssetDto, 
+      'id' | 'snapshot_id' | 'user_id' | 'created_at' | 'updated_at' | 'category'
+  >; 
+  value: any; 
 }

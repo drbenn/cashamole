@@ -4,13 +4,13 @@ import { SnapshotService } from './snapshot.service';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from 'src/database/database.module';
 import { SnapshotQueryService } from './snapshot-query.service';
-import { AssetsController } from './assets/assets.controller';
-import { LiabilitiesController } from './liabilities/liabilities.controller';
-import { AssetsService } from './assets/assets.service';
-import { AssetQueryService } from './assets/assets-query.service';
-import { LiabilitiesService } from './liabilities/liabilities.service';
-import { LiabilitiesQueryService } from './liabilities/liabilties-query.service';
 import { AuthModule } from 'src/auth/auth.module';
+import { SnapshotAssetController } from './assets/assets.controller';
+import { SnapshotLiabilityController } from './liabilities/liabilities.controller';
+import { SnapshotAssetService } from './assets/assets.service';
+import { SnapshotAssetQueryService } from './assets/assets-query.service';
+import { SnapshotLiabilityService } from './liabilities/liabilities.service';
+import { SnapshotLiabilityQueryService } from './liabilities/liabilties-query.service';
 
 @Module({
   imports: [
@@ -20,16 +20,16 @@ import { AuthModule } from 'src/auth/auth.module';
   ],
   controllers: [
     SnapshotController,
-    AssetsController,
-    LiabilitiesController
+    SnapshotAssetController,
+    SnapshotLiabilityController
   ],
   providers: [
     SnapshotService,
     SnapshotQueryService,
-    AssetsService,
-    AssetQueryService,
-    LiabilitiesService,
-    LiabilitiesQueryService
+    SnapshotAssetService,
+    SnapshotAssetQueryService,
+    SnapshotLiabilityService,
+    SnapshotLiabilityQueryService
   ]
 })
 export class SnapshotModule {}

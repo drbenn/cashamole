@@ -1,4 +1,4 @@
-import { ServiceCreateSnapshotItemDto, SnapshotAssetDto } from '@common-types';
+import { ServiceCreateSnapshotAssetDto, SnapshotAssetDto } from '@common-types';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Pool } from 'pg';
@@ -13,19 +13,19 @@ export class SnapshotAssetQueryService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-// =================================================================
+  // =================================================================
   // CREATE (MINIMAL FIELDS)
   // =================================================================
-  async createAsset(dto: ServiceCreateSnapshotItemDto): Promise<SnapshotAssetDto> {
+  async createAsset(dto: ServiceCreateSnapshotAssetDto): Promise<SnapshotAssetDto> {
     const sql = `
       INSERT INTO snapshot_asset 
         (id, snapshot_id, user_id, category, active)
-      VALUES ($1, $2, $3, $4, TRUE)
+      VALUES ($1, $2, $3, 'asset', TRUE)
       RETURNING *;
     `;
 
     const id = uuidv4()
-    const values = [id, dto.snapshot_id, dto.user_id, dto.category];
+    const values = [id, dto.snapshot_id, dto.user_id];
     
     const result = await this.pgPool.query(sql, values);
     return result.rows[0] as SnapshotAssetDto;

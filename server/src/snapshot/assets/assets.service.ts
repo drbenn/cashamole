@@ -1,4 +1,4 @@
-import { ServiceCreateSnapshotItemDto, SnapshotAssetDto } from '@common-types/snapshot-asset.types';
+import { ServiceCreateSnapshotAssetDto, SnapshotAssetDto } from '@common-types/snapshot-asset.types';
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SnapshotAssetQueryService } from './assets-query.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -12,7 +12,7 @@ export class SnapshotAssetService {
 // =================================================================
   // CREATE
   // =================================================================
-  async createAsset(dto: ServiceCreateSnapshotItemDto): Promise<SnapshotAssetDto> {
+  async createAsset(dto: ServiceCreateSnapshotAssetDto): Promise<SnapshotAssetDto> {
     
     this.logger.log(`Attempting to create new asset for header ${dto.snapshot_id} by user ${dto.user_id}`, SnapshotAssetService.name);
     

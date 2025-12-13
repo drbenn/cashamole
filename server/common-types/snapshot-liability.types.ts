@@ -16,3 +16,21 @@ export interface SnapshotLiabilityDto {
   liability_interest_rate?: number
   liability_total_loan_value?: number
 }
+
+export interface CreateSnapshotLiabilityDto {
+  snapshot_id: string; // ONLY required field
+}
+
+// The internal service DTO MUST include user_id and category
+export interface ServiceCreateSnapshotLiabilityDto extends CreateSnapshotLiabilityDto {
+  user_id: string; // From JWT
+}
+
+export interface UpdateSnapshotLiabilityFieldDto {
+  snapshot_id: string; // Header ID for security check
+  // Omit list is based on the database schema fields, INCLUDING user_id (which is not updatable)
+  field: keyof Omit<SnapshotLiabilityDto, 
+      'id' | 'snapshot_id' | 'created_at' | 'updated_at' | 'category'
+  > | 'user_id'; // NOTE: user_id is in the DB, so we must omit it from updatable fields list if it's there.
+  value: any; 
+}

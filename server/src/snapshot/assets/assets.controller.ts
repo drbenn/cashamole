@@ -7,31 +7,27 @@ import { JwtGuard } from 'src/auth/jwt-guard/guards';
 
 @UseGuards(JwtGuard)
 @Controller('snapshot/assets')
-export class AssetsController {
-    constructor(
-      private readonly snapshotAssetService: SnapshotAssetService,
-      @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger
-    ) {}
+export class SnapshotAssetController {
+  constructor(
+    private readonly snapshotAssetService: SnapshotAssetService,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger
+  ) {}
 
 // =================================================================
   // POST /snapshot-asset (CREATE)
   // =================================================================
   @Post()
   async createSnapshotAsset(
-    @Body() dto: CommonTypes.CreateSnapshotItemDto,
+    @Body() dto: CommonTypes.CreateSnapshotAssetDto,
     @Req() req: { user: CommonTypes.UserJwtGuardPayload },
   ): Promise<SnapshotAssetDto> {
     
-    if (dto.category !== 'asset') {
-        throw new BadRequestException('Category must be "asset" for this endpoint.');
-    }
     if (!dto.snapshot_id) {
         throw new BadRequestException('snapshot_id is required.');
     }
 
-    const serviceDto: CommonTypes.ServiceCreateSnapshotItemDto = {
+    const serviceDto: CommonTypes.ServiceCreateSnapshotAssetDto = {
         snapshot_id: dto.snapshot_id,
-        category: dto.category,
         user_id: req.user.userId,
     };
 

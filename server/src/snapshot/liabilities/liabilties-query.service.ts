@@ -1,121 +1,91 @@
-import { DeactivateSnapshotDto, FetchSnapshotsDto, UpdateSnapshotFieldDto } from '@common-types';
+import { ServiceCreateSnapshotLiabilityDto, SnapshotLiabilityDto } from '@common-types';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Pool } from 'pg';
 import { PG_CONNECTION } from 'src/database/database.constants';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class LiabilitiesQueryService {
+export class SnapshotLiabilityQueryService {
   // Inject the singleton Pool instance
   constructor(
     @Inject(PG_CONNECTION) private pgPool: Pool,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-  // async insertSnapshot(dto: SnapshotDto): Promise<SnapshotDto> {
-  //   const queryText = `
-  //     INSERT INTO "snapshots" (id, user_id, snapshot_date, items, created_at, updated_at, active)
-  //     VALUES ($1, $2, $3, $4, $5, $6, $7)
-  //     RETURNING *;
-  //   `;
+// =================================================================
+  // CREATE (MINIMAL FIELDS)
+  // Purpose: Inserts a new, blank liability record.
+  // =================================================================
+  async createLiability(dto: ServiceCreateSnapshotLiabilityDto): Promise<SnapshotLiabilityDto> {
+    const sql = `
+      INSERT INTO snapshot_liability 
+        (id, snapshot_id, user_id, category, active)
+      VALUES ($1, $2, $3, 'liability', TRUE)
+      RETURNING *;
+    `;
+    
+    const id = uuidv4()
+    const values = [id, dto.snapshot_id, dto.user_id];
+    
+    // Note: If an error occurs (e.g., FK constraint failure), it will be caught by the service layer.
+    const result = await this.pgPool.query(sql, values);
+    return result.rows[0] as SnapshotLiabilityDto;
+  }
 
-  //   const values = [
-  //     dto.id,
-  //     dto.user_id,
-  //     dto.snapshot_date,
-  //     dto.items,
-  //     dto.created_at,
-  //     dto.updated_at,
-  //     true
-  //   ];
+  // =================================================================
+  // UPDATE (PRECISE FIELD-LEVEL UPDATE)
+  // Purpose: Updates a single field dynamically, with security checks.
+  // =================================================================
+  async updateLiability(
+    liabilityId: string, 
+    userId: string, 
+    snapshotId: string, 
+    field: string, 
+    value: any
+  ): Promise<SnapshotLiabilityDto | null> {
+    
+    // NOTE: Assume 'snapshot_liability' is the table name
+    // CRITICAL: Use string interpolation for the column name (field) after validation, 
+    // but parameterized slots ($1, $2, $3, $4) for all user-provided data (IDs, value).
+    const sql = `
+      UPDATE snapshot_liability
+      SET 
+        "${field}" = $4,
+        updated_at = NOW()
+      WHERE id = $1 
+        AND user_id = $2 
+        AND snapshot_id = $3 
+        AND active = TRUE
+      RETURNING *;
+    `;
 
-  //   try {
-  //     const result = await this.pgPool.query(queryText, values);   
-  //     const snapshot: SnapshotDto = result.rows[0]
-  //     return snapshot
-  //   } catch (error) {
-  //     this.logger.log('warn', `Error: snapshot-query-service insertSnapshot: ${error}`);
-  //     throw new Error('Error: snapshot-query-service insertSnapshot');
-  //   }
-  // }
+    const values = [liabilityId, userId, snapshotId, value]; 
 
-  // async getAllUserSnapshots(dto: FetchSnapshotsDto): Promise<SnapshotDto[]> {
-  //   const queryText = `
-  //     SELECT * FROM snapshots
-  //     WHERE user_id = $1 AND status = $2;
-  //   `;
+    try {
+        const result = await this.pgPool.query(sql, values);
+        return result.rows.length > 0 ? (result.rows[0] as SnapshotLiabilityDto) : null;
+    } catch (error) {
+        this.logger.error(`DB Error updating liability ID ${liabilityId} field ${field}: ${error.message}`, SnapshotLiabilityQueryService.name);
+        throw error;
+    }
+  }
 
-  //   const values = [
-  //     dto.user_id,
-  //     true
-  //   ];
-
-  //   try {
-  //     const result = await this.pgPool.query(queryText, values);   
-  //     const snapshots: SnapshotDto[] = result.rows[0]
-  //     return snapshots
-  //   } catch (error) {
-  //     this.logger.log('warn', `Error: snapshot-query-service getAllUsersSnapshots: ${error}`);
-  //     throw new Error('Error: snapshot-query-service getAllUsersSnapshots');
-  //   }
-  // }
-
-  // async updateSnapshotField(dto: UpdateSnapshotFieldDto): Promise<UpdateSnapshotFieldDto> {
-  //   const queryText = `
-  //     UPDATE "snapshots" 
-  //     SET ${dto.field} = $1, updated_at = $2
-  //     WHERE user_id = $3 AND id = $4 RETURNING *;`  
-
-  //   const values = [
-  //     dto.new_value,
-  //     dto.updated_at,
-  //     dto.user_id,
-  //     dto.snapshot_id,
-  //   ];
-
-  //   try {
-  //     const result = await this.pgPool.query(queryText, values);   
-  //     const snapshot: SnapshotDto = result.rows[0]
-  //     const updatedSnapshot: UpdateSnapshotFieldDto = {
-  //       user_id: snapshot.user_id,
-  //       snapshot_id: snapshot.id,
-  //       field: dto.field,
-  //       new_value: dto.new_value,
-  //       updated_at: snapshot.updated_at!
-  //     }
-  //     return updatedSnapshot
-  //   } catch (error) {
-  //     this.logger.log('warn', `Error: snapshot-query-service updateSnapshotField: ${error}`);
-  //     throw new Error('Error: snapshot-query-service updateSnapshotField');
-  //   }
-  // }
-
-  // async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
-  //   const queryText = `
-  //     UPDATE "snapshots" 
-  //     SET active = $1, updated_at = $2
-  //     WHERE user_id = $2 AND id = $3 RETURNING *;`  
-
-  //   const values = [
-  //     false,
-  //     dto.updated_at,
-  //     dto.user_id,
-  //     dto.snapshot_id,
-  //   ];
-
-  //   try {
-  //     const result = await this.pgPool.query(queryText, values);   
-  //     const snapshot: SnapshotDto = result.rows[0]
-  //     const deactivatedSnapshot: DeactivateSnapshotDto = {
-  //       user_id: snapshot.user_id,
-  //       snapshot_id: snapshot.id,
-  //       false,
-  //       updated_at: snapshot.updated_at!
-  //     }
-  //     return deactivatedSnapshot
-  //   } catch (error) {
-  //     this.logger.log('warn', `Error: snapshot-query-service deactivateSnapshot: ${error}`);
-  //     throw new Error('Error: snapshot-query-service deactivateSnapshot');
-  //   }
-  // }
+  // =================================================================
+  // DEACTIVATE
+  // Purpose: Sets the 'active' flag to FALSE (soft delete).
+  // =================================================================
+  async deactivateLiability(liabilityId: string, userId: string): Promise<SnapshotLiabilityDto | null> {
+    const sql = `
+      UPDATE snapshot_liability
+      SET active = FALSE, updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING *; 
+    `;
+    
+    const values = [liabilityId, userId];
+    
+    const result = await this.pgPool.query(sql, values);
+    return result.rows.length > 0 ? (result.rows[0] as SnapshotLiabilityDto) : null;
+  }
 }
