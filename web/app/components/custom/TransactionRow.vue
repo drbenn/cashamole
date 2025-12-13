@@ -1,6 +1,6 @@
 <script lang="ts">
 
-import ComboBox from '@/components/custom/ComboBox.vue';
+// import ComboBox from '@/components/custom/ComboBox.vue';
   console.log('t-row!');
   
 
@@ -11,6 +11,6 @@ import ComboBox from '@/components/custom/ComboBox.vue';
     Yo
   </div>
   <div>
-    <ComboBox />
+    <!-- <ComboBox></ComboBox> -->
   </div>
 </template>

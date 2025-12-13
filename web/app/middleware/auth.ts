@@ -1,6 +1,7 @@
 import { useUserStore } from "@/stores/userStore"
+import type { RouteLocationNormalized } from "vue-router";
 
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware((to:RouteLocationNormalized, from: RouteLocationNormalized) => {
   const userStore = useUserStore()
 
   // 1. Check if the user is NOT logged in

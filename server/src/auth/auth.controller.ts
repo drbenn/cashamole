@@ -39,12 +39,8 @@ export class AuthController {
     @Req() req: Request,                          // req for capturing and logging ip
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
-    console.log('login cachced');
     const sessionToken = req.cookies['jwt'];
     const refreshToken = req.cookies['refresh_token'];
-    console.log('sessionToken: ', sessionToken);
-    console.log('refreshToken: ', )
-    // return sessionToken
 
     const refreshTokenCookie = req.cookies['refresh_token'];
     
@@ -81,7 +77,6 @@ export class AuthController {
       ...baseOptions,
       maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION),  // Expiration time
     });
-    console.log('sending cookies: ', jwtAccessToken, jwtRefreshToken);
     
   };
 

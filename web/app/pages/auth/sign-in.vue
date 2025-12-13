@@ -5,7 +5,8 @@ import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types'
 import type { LoginUserDto, RequestNewVerificationDto } from '@common-types'
 import { z } from 'zod'
-
+import CashBox from '~/components/custom/shared/CashDrop.vue'
+import CashInput from '~/components/custom/shared/CashInput.vue'
 const form = ref({
   email: '',
   password: '',
@@ -102,6 +103,28 @@ const handleResendConfirmation = async () => {
     isResendLoading.value = false
   }
 }
+
+const cbOptions = [
+  { value: 'amazon_services', label: 'Amazon Services' },
+  { value: 'utility_company', label: 'Utility Company' },
+  { value: 'microsoft_corp', label: 'Microsoft Corporation' },
+  { value: 'local_grocery', label: 'Local Grocery Store' },
+  { value: 'gas_station', label: 'Gas Station' },
+  { value: 'software_a', label: 'Software Subscription A' },
+]
+const cbSuggestions = [
+  'Amazon Services',
+  'Utility Company',
+  'Microsoft Corporation',
+  'Local Grocery Store',
+  'Gas Station',
+  'Software Subscription A'
+]
+
+// 3. Define the reactive variable to hold the selected value
+// This variable will automatically be updated by v-model
+const cbValue = ref('gas_station')
+const cbLabel = ref('Gas Station')
 </script>
 
 
@@ -117,6 +140,21 @@ const handleResendConfirmation = async () => {
         </div>
         <h1 class="text-3xl font-bold text-gray-900 cursor-default">Sign In</h1>
       </div>
+
+
+      <CashBox 
+        v-model:value="cbValue"
+        v-model:label="cbLabel"
+        :options="cbOptions"
+        :placeholder="'🔮'"
+      />
+      <CashInput 
+        v-model="cbValue"
+        :options="cbSuggestions"
+        :placeholder="'Enter text...'"
+        :icon="'🔮'"
+      />
+
 
       <!-- Form Card -->
       <div class="bg-white rounded-lg shadow-sm p-8">

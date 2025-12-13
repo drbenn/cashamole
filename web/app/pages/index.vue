@@ -42,6 +42,7 @@ const showVToast = () => {
       <button @click="userStore.login({ email: 'test@example.com' })">Login</button>
     </div> -->
 
+
     <!-- Hero Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
       <div class="text-center max-w-2xl mx-auto">

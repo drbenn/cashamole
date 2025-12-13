@@ -67,19 +67,18 @@ export class AuthService {
 
   // Utility function to decode the JWT payload and extract the JTI
   private extractJti(refreshToken: string): string {
-    console.log("REFRESH TOKEN RECEIVED:", refreshToken);
-      try {
-          // NOTE: We only decode, not verify the signature yet.
-          const [header, payload, signature] = refreshToken.split('.');
-          const decodedPayload = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
-          
-          if (!decodedPayload || !decodedPayload.jti) {
-              throw new Error('JTI missing from token payload.');
-          }
-          return decodedPayload.jti;
-      } catch (e) {
-          throw new UnauthorizedException('Invalid refresh token format.');
+    try {
+      // NOTE: We only decode, not verify the signature yet.
+      const [header, payload, signature] = refreshToken.split('.');
+      const decodedPayload = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+      
+      if (!decodedPayload || !decodedPayload.jti) {
+          throw new Error('JTI missing from token payload.');
       }
+      return decodedPayload.jti;
+    } catch (e) {
+      throw new UnauthorizedException('Invalid refresh token format.');
+    }
   }
 
   private generateConfirmationCode(): string {

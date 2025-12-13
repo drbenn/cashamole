@@ -269,8 +269,6 @@ export class AuthQueryService {
 
   // get relevant refresh token for login 
   async getRefreshTokenRecord(jti: string): Promise<any> {
-    console.log('serach jti : ', jti);
-    
     const queryText = `
       SELECT * from user_refresh_tokens
       WHERE jti = $1;
