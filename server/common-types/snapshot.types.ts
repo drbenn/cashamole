@@ -1,7 +1,7 @@
 export interface SnapshotHeaderDto {
   id: string
   user_id: string
-  snapshot_date: Date | string      // Date fpr api to process string of e.g. '2025-12-16' for succinct response
+  snapshot_date: Date | string      // Date for api to process string of e.g. '2025-12-16' for succinct response
   items: (SnapshotAssetDto | SnapshotLiabilityDto)[]
   total_assets?: number             // Read-only, calculated value
   total_liablities?: number         // Read-only, calculated value
@@ -13,6 +13,23 @@ export interface SnapshotHeaderDto {
 export interface CreateSnapshotHeaderDto {
   /** The calendar date of the snapshot (e.g., '2025-12-31'). */
   snapshot_date: Date;
+}
+
+export interface UpdateSnapshotDateDto {
+  /** The calendar date of the snapshot (e.g., '2025-12-31'). */
+  snapshot_date: Date;
+}
+
+export interface SnapshotDetailDto {
+  id: string; // Header ID
+  user_id: string;
+  snapshot_date: string; // YYYY-MM-DD string
+  created_at: Date;
+  assets: SnapshotAssetDto[]; // Array of associated assets
+  liabilities: SnapshotLiabilityDto[];
+  total_assets: number;
+  total_liabilities: number;
+  net_worth: number;
 }
 
 export interface CreateSnapshotHeaderApiDto {
