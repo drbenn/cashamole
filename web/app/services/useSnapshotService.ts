@@ -1,4 +1,4 @@
-import type { SnapshotDto, FetchSnapshotsDto, DeactivateSnapshotDto, UpdateSnapshotFieldDto } from "@common-types"
+import type { FetchSnapshotsDto, DeactivateSnapshotDto, UpdateSnapshotFieldDto, CreateSnapshotHeaderDto } from "@common-types"
 import type { FetchError } from 'ofetch'
 import type { ApiResponse } from "~/types/app.types"
 
@@ -6,12 +6,13 @@ export const useSnapshotService = () => {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBaseUrl
 
-  const createSnapshot = async (dto: SnapshotDto): Promise<ApiResponse> => {
+  const createSnapshot = async (dto: CreateSnapshotHeaderDto): Promise<ApiResponse> => {
     
     try {
       const response = await $fetch(`${apiBase}/snapshot`, {
         method: 'POST',
         body: dto,
+        credentials: 'include' 
       })
       return { success: true, data: response }
     }

@@ -3,13 +3,22 @@ export interface SnapshotHeaderDto {
   user_id: string
   snapshot_date: Date
   items: (SnapshotAssetDto | SnapshotLiabilityDto)[]
+  total_assets?: number             // Read-only, calculated value
+  total_liablities?: number         // Read-only, calculated value
   active?: boolean 
   created_at?: string               // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
   updated_at?: string               // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
 }
 
+export interface CreateSnapshotHeaderDto {
+  /** The calendar date of the snapshot (e.g., '2025-12-31'). */
+  snapshot_date: Date;
+  user_id?: string              // user_id added internally from jwt-guard to use in sql service 
+}
+
 export interface SnapshotAssetDto {
   id: string
+  snapshot_id: string               // Foreign Key reference
   category: 'asset'
   amount?: number
   party?: string | 'lender' | 'borrower' | 'creditor' | 'debtor' | 'vendor'   // transaction vendor equivalent
@@ -25,6 +34,7 @@ export interface SnapshotAssetDto {
 
 export interface SnapshotLiabilityDto {
   id: string
+  snapshot_id: string               // Foreign Key reference
   category: 'liablity'
   amount?: number
   party?: string | 'lender' | 'borrower' | 'creditor' | 'debtor' | 'vendor'   // transaction vendor equivalent

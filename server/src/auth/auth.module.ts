@@ -3,10 +3,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailModule } from 'src/email/email.module';
-import { JwtModule } from '@nestjs/jwt';
-import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
+import { JwtStrategy } from './jwt-guard/jwt.strategy';
 import { AuthQueryService } from './auth-query.service';
 import { DatabaseModule } from 'src/database/database.module';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [
@@ -15,14 +16,29 @@ import { DatabaseModule } from 'src/database/database.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        // Load the secret from .env
-        secret: configService.get<string>('JWT_SECRET'),
-      }),
-    }),
+              // Use non-null assertion (!) here, as the ?? operator makes it non-null anyway
+              secret: configService.get<string>('JWT_SECRET')!, 
+              signOptions: {
+                  // Use non-null assertion (!) here as well.
+                  // TypeScript is satisfied when the result is asserted as non-null string.
+                  expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN')!, 
+              },
+            } as JwtModuleOptions), // <--- ASSERT the entire object as the required type
+          }),
     EmailModule,
-    DatabaseModule
+    DatabaseModule,
+    PassportModule
   ],
-  providers: [AuthService, AuthQueryService, JwtStrategy],
   controllers: [AuthController],
+  providers: [
+    AuthService,
+    AuthQueryService,
+    JwtStrategy
+  ],
+  exports:[
+    PassportModule,
+    JwtModule,
+    AuthService
+  ]
 })
 export class AuthModule {}

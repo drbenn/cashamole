@@ -1,4 +1,3 @@
-import { DeactivateSnapshotDto, FetchSnapshotsDto, SnapshotDto, UpdateSnapshotFieldDto } from '@common-types';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Pool } from 'pg';
@@ -12,110 +11,51 @@ export class SnapshotQueryService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-  async insertSnapshot(dto: SnapshotDto): Promise<SnapshotDto> {
-    const queryText = `
-      INSERT INTO "snapshots" (id, user_id, snapshot_date, items, created_at, updated_at, active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *;
-    `;
+// /**
+//      * Checks if a snapshot already exists for the given user_id and date.
+//      * @returns boolean
+//      */
+//     async checkExistingSnapshot(userId: string, snapshotDate: Date): Promise<boolean> {
+//         const dateString = snapshotDate.toISOString().split('T')[0]; // Format Date as 'YYYY-MM-DD'
+        
+//         const query = `
+//             SELECT id
+//             FROM snapshots
+//             WHERE user_id = $1 AND snapshot_date = $2
+//         `;
+        
+//         // Execute the query using your database client
+//         const result = await this.pgPool.query(query, [userId, dateString]);
+        
+//         return result.rows.length > 0;
+//     }
 
-    const values = [
-      dto.id,
-      dto.user_id,
-      dto.snapshot_date,
-      dto.items,
-      dto.created_at,
-      dto.updated_at,
-      true
-    ];
-
-    try {
-      const result = await this.pgPool.query(queryText, values);   
-      const snapshot: SnapshotDto = result.rows[0]
-      return snapshot
-    } catch (error) {
-      this.logger.log('warn', `Error: snapshot-query-service insertSnapshot: ${error}`);
-      throw new Error('Error: snapshot-query-service insertSnapshot');
-    }
-  }
-
-  async getAllUserSnapshots(dto: FetchSnapshotsDto): Promise<SnapshotDto[]> {
-    const queryText = `
-      SELECT * FROM snapshots
-      WHERE user_id = $1 AND status = $2;
-    `;
-
-    const values = [
-      dto.user_id,
-      true
-    ];
-
-    try {
-      const result = await this.pgPool.query(queryText, values);   
-      const snapshots: SnapshotDto[] = result.rows[0]
-      return snapshots
-    } catch (error) {
-      this.logger.log('warn', `Error: snapshot-query-service getAllUsersSnapshots: ${error}`);
-      throw new Error('Error: snapshot-query-service getAllUsersSnapshots');
-    }
-  }
-
-  async updateSnapshotField(dto: UpdateSnapshotFieldDto): Promise<UpdateSnapshotFieldDto> {
-    const queryText = `
-      UPDATE "snapshots" 
-      SET ${dto.field} = $1, updated_at = $2
-      WHERE user_id = $3 AND id = $4 RETURNING *;`  
-
-    const values = [
-      dto.new_value,
-      dto.updated_at,
-      dto.user_id,
-      dto.snapshot_id,
-    ];
-
-    try {
-      const result = await this.pgPool.query(queryText, values);   
-      const snapshot: SnapshotDto = result.rows[0]
-      const updatedSnapshot: UpdateSnapshotFieldDto = {
-        user_id: snapshot.user_id,
-        snapshot_id: snapshot.id,
-        field: dto.field,
-        new_value: dto.new_value,
-        updated_at: snapshot.updated_at!
-      }
-      return updatedSnapshot
-    } catch (error) {
-      this.logger.log('warn', `Error: snapshot-query-service updateSnapshotField: ${error}`);
-      throw new Error('Error: snapshot-query-service updateSnapshotField');
-    }
-  }
-
-  // async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
-  //   const queryText = `
-  //     UPDATE "snapshots" 
-  //     SET active = $1, updated_at = $2
-  //     WHERE user_id = $2 AND id = $3 RETURNING *;`  
-
-  //   const values = [
-  //     false,
-  //     dto.updated_at,
-  //     dto.user_id,
-  //     dto.snapshot_id,
-  //   ];
-
-  //   try {
-  //     const result = await this.pgPool.query(queryText, values);   
-  //     const snapshot: SnapshotDto = result.rows[0]
-  //     const deactivatedSnapshot: DeactivateSnapshotDto = {
-  //       user_id: snapshot.user_id,
-  //       snapshot_id: snapshot.id,
-  //       false,
-  //       updated_at: snapshot.updated_at!
-  //     }
-  //     return deactivatedSnapshot
-  //   } catch (error) {
-  //     this.logger.log('warn', `Error: snapshot-query-service deactivateSnapshot: ${error}`);
-  //     throw new Error('Error: snapshot-query-service deactivateSnapshot');
-  //   }
-  // }
+//     /**
+//      * Inserts the new snapshot header into the database.
+//      * @returns The full SnapshotHeaderDto (including generated ID, timestamps, defaults)
+//      */
+//     async insertSnapshotHeader(dto: CommonTypes.CreateSnapshotHeaderDto): Promise<CommonTypes.SnapshotHeaderDto> {
+//         const dateString = dto.snapshot_date.toISOString().split('T')[0];
+        
+//         // We let the database generate id, created_at, updated_at, and active (default TRUE)
+//         const query = `
+//             INSERT INTO snapshots (id, user_id, snapshot_date)
+//             VALUES (gen_random_uuid(), $1, $2)
+//             RETURNING id, user_id, snapshot_date, active, created_at, updated_at
+//         `;
+        
+//         const result = await this.db.query(query, [dto.user_id, dateString]);
+        
+//         // Map the database result row back to your DTO
+//         const row = result.rows[0];
+//         return {
+//             id: row.id,
+//             user_id: row.user_id,
+//             snapshot_date: row.snapshot_date, // Note: Postgres might return this as a Date object without time.
+//             active: row.active,
+//             created_at: row.created_at.toISOString(),
+//             updated_at: row.updated_at.toISOString(),
+//             // items, total_assets, total_liabilities are intentionally absent here (derived/separate fetch)
+//         } as CommonTypes.SnapshotHeaderDto;
+//     }
 }

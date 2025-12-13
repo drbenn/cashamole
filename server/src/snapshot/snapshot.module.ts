@@ -10,11 +10,13 @@ import { AssetsService } from './assets/assets.service';
 import { AssetQueryService } from './assets/assets-query.service';
 import { LiabilitiesService } from './liabilities/liabilities.service';
 import { LiabilitiesQueryService } from './liabilities/liabilties-query.service';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule,
-    DatabaseModule
+    DatabaseModule,
+    AuthModule          // for accessing jwt through guard
   ],
   controllers: [
     SnapshotController,

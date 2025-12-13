@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { SnapshotQueryService } from './snapshot-query.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DeactivateSnapshotDto, FetchSnapshotsDto, SnapshotDto, UpdateSnapshotFieldDto } from '@common-types';
+import { CreateSnapshotHeaderDto, SnapshotHeaderDto } from '@common-types';
+
 
 @Injectable()
 export class SnapshotService {
@@ -10,19 +11,23 @@ export class SnapshotService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-  async createSnapshot(dto: SnapshotDto): Promise<SnapshotDto> {
-    return await this.snapshotQueryService.insertSnapshot(dto)
-  }
+  // async createSnapshotHeader(dto: CreateSnapshotHeaderDto): Promise<SnapshotHeaderDto> {
+        
+  //   // 1. Business Rule: Check for Existing Snapshot on this Date
+  //   const exists = await this.snapshotQueryService.checkExistingSnapshot(
+  //       dto.user_id, 
+  //       dto.snapshot_date
+  //   );
 
-  async getAllUserSnapshots(dto: FetchSnapshotsDto): Promise<SnapshotDto[]> {
-    return await this.snapshotQueryService.getAllUserSnapshots(dto)
-  }
+  //   if (exists) {
+  //       // Throw a specific error if a snapshot already exists for this user/date combination
+  //       throw new ConflictException(`A snapshot already exists for user ${dto.user_id} on ${dto.snapshot_date.toISOString().split('T')[0]}.`);
+  //   }
 
-  async updateSnapshotField(dto: UpdateSnapshotFieldDto): Promise<UpdateSnapshotFieldDto> {
-    return await this.snapshotQueryService.updateSnapshotField(dto)
-  }
+  //   // 2. Data Persistence: Create the Header
+  //   const newSnapshot = await this.snapshotQueryService.insertSnapshotHeader(dto);
 
-  // async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
-  //   return await this.snapshotQueryService.deactivateSnapshot(dto)
+  //   // 3. Return the newly created header DTO
+  //   return newSnapshot;
   // }
 }

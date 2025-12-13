@@ -61,24 +61,48 @@ export class AuthController {
     };
   };
 
-  private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) {   
-    const baseOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,         // Use 'as const' for TypeScript literal type safety
-      path: '/',                            // Ensure the cookie is cleared from the root path
+
+
+// We need to handle the two cases based on the execution environment:
+// 1. Production (HTTPS): SameSite: None, Secure: True (Allows cross-site requests)
+// 2. Development (HTTP/Localhost): SameSite: Lax, Secure: False (Works for cross-port localhost requests)
+
+private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) { 
+    // The standard for determining if we are running locally (http://localhost)
+    const isLocalhost = process.env.NODE_ENV === 'development';
+    // The standard for determining if we are on a non-secure connection
+    const isSecure = process.env.NODE_ENV === 'production';
+    
+    // Determine the environment settings dynamically
+    const cookieOptions = {
+        httpOnly: true,
+        path: '/',
+        
+        // **PRODUCTION SETTINGS (HTTPS, Cross-Site)**
+        // Secure is TRUE only if it is production (or explicitly set via ENV/HTTPS)
+        secure: isSecure, 
+        
+        // SameSite is 'None' for cross-site requests (in production), 
+        // OR 'Lax' for local development (which works for cross-port localhost)
+        sameSite: isSecure ? 'none' as const : 'lax' as const, 
     };
+
+    // ----------------------------------------------------
+    // Access Token Cookie
+    // ----------------------------------------------------
     res.cookie('jwt', jwtAccessToken, {
-      ...baseOptions,
-      maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),  // Expiration time, time stored in browser, not validity
+        ...cookieOptions,
+        maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),
     });
 
+    // ----------------------------------------------------
+    // Refresh Token Cookie (Usually longer expiration)
+    // ----------------------------------------------------
     res.cookie('refresh_token', jwtRefreshToken, {
-      ...baseOptions,
-      maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION),  // Expiration time
+        ...cookieOptions,
+        maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION), 
     });
-    
-  };
+}
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
