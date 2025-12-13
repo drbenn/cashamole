@@ -50,8 +50,9 @@ export class AuthController {
       // });
       throw new UnauthorizedException('No refresh token found');
     }
-      
-    const data = await this.authService.loginCachedUser(refreshTokenCookie)
+
+    const ipAddress: string = this.authService.getClientIp(req)
+    const data = await this.authService.loginCachedUser(refreshTokenCookie, ipAddress)
 
     this.sendLoginCookies(res, data.jwtAccessToken, data.jwtRefreshToken);
   
@@ -63,11 +64,11 @@ export class AuthController {
 
 
 
-// We need to handle the two cases based on the execution environment:
-// 1. Production (HTTPS): SameSite: None, Secure: True (Allows cross-site requests)
-// 2. Development (HTTP/Localhost): SameSite: Lax, Secure: False (Works for cross-port localhost requests)
+  // We need to handle the two cases based on the execution environment:
+  // 1. Production (HTTPS): SameSite: None, Secure: True (Allows cross-site requests)
+  // 2. Development (HTTP/Localhost): SameSite: Lax, Secure: False (Works for cross-port localhost requests)
 
-private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) { 
+  private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) { 
     // The standard for determining if we are running locally (http://localhost)
     const isLocalhost = process.env.NODE_ENV === 'development';
     // The standard for determining if we are on a non-secure connection
@@ -75,34 +76,62 @@ private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken:
     
     // Determine the environment settings dynamically
     const cookieOptions = {
-        httpOnly: true,
-        path: '/',
-        
-        // **PRODUCTION SETTINGS (HTTPS, Cross-Site)**
-        // Secure is TRUE only if it is production (or explicitly set via ENV/HTTPS)
-        secure: isSecure, 
-        
-        // SameSite is 'None' for cross-site requests (in production), 
-        // OR 'Lax' for local development (which works for cross-port localhost)
-        sameSite: isSecure ? 'none' as const : 'lax' as const, 
+      httpOnly: true,
+      path: '/',
+      
+      // **PRODUCTION SETTINGS (HTTPS, Cross-Site)**
+      // Secure is TRUE only if it is production (or explicitly set via ENV/HTTPS)
+      secure: isSecure, 
+      
+      // SameSite is 'None' for cross-site requests (in production), 
+      // OR 'Lax' for local development (which works for cross-port localhost)
+      sameSite: isSecure ? 'none' as const : 'lax' as const, 
     };
 
     // ----------------------------------------------------
     // Access Token Cookie
     // ----------------------------------------------------
     res.cookie('jwt', jwtAccessToken, {
-        ...cookieOptions,
-        maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),
+      ...cookieOptions,
+      maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),
     });
 
     // ----------------------------------------------------
     // Refresh Token Cookie (Usually longer expiration)
     // ----------------------------------------------------
     res.cookie('refresh_token', jwtRefreshToken, {
-        ...cookieOptions,
-        maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION), 
+      ...cookieOptions,
+      maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION), 
     });
-}
+  }
+
+  //   private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken: string) { 
+  //   const isLocalHttp = process.env.NODE_ENV === 'development';
+
+  //   const baseOptions = {
+  //     httpOnly: true,
+  //     // secure MUST be true for SameSite: 'None', UNLESS we are running on localhost HTTP
+  //     secure: !isLocalHttp,
+  //     // sameSite: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,         // Use 'as const' for TypeScript literal type safety
+  //     // path: '/', 
+      
+  //     // Use 'None' to guarantee sending the cookie on cross-site POST/PATCH/etc.
+  //     // This is often required when ports differ (4200 to 3080).
+  //     // sameSite: 'none' as const, 
+  //     // *** CHANGE: Use 'lax' for local HTTP development ***
+  //     sameSite: 'lax' as const,
+  //     path: '/',// Ensure the cookie is cleared from the root path
+  //   };
+  //   res.cookie('jwt', jwtAccessToken, {
+  //     ...baseOptions,
+  //     maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),  // Expiration time, time stored in browser, not validity
+  //   });
+
+  //   res.cookie('refresh_token', jwtRefreshToken, {
+  //     ...baseOptions,
+  //     maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION),  // Expiration time
+  //   });
+  // };
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
@@ -127,9 +156,14 @@ private sendLoginCookies(res: Response, jwtAccessToken: string, jwtRefreshToken:
   // @UseGuards(ThrottlerGuard)
   // @Throttle({ default: { limit: 5, ttl: 60000 }}) // 5 attempts per min
   async verifyEmail(
-    @Body() dto: CommonTypes.VerifyRegistrationDto 
+    @Body() dto: CommonTypes.VerifyRegistrationDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,    // Enables passing response
   ) {
-    const user = await this.authService.verifyAccount(dto)
+    const ipAddress: string = this.authService.getClientIp(req)
+    const { user, jwtRefreshToken, jwtAccessToken } = await this.authService.verifyAccount(dto, ipAddress)
+
+    this.sendLoginCookies(res, jwtAccessToken, jwtRefreshToken)
     return { 
       message: 'Account verified successfully!',
       user: user

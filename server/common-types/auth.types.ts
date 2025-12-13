@@ -36,6 +36,10 @@ export type JwtPayload = {
     type?: string
 };
 
+export interface UserJwtGuardPayload {
+  userId: string; 
+}
+
 export interface User {
   id: string,
   email: string,

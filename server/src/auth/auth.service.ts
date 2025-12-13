@@ -168,7 +168,7 @@ export class AuthService {
     await this.sendAccountVerificationEmail(userId, dto.email)
   }
 
-  async verifyAccount(dto: VerifyRegistrationDto) {
+  async verifyAccount(dto: VerifyRegistrationDto, ipAddress: string) {
     const confirmation = await this.authQueryService.findEmailConfirmation(dto)
 
     if (!confirmation) {
@@ -190,7 +190,34 @@ export class AuthService {
     }
 
     const userAsSuccessfulResponse = await this.authQueryService.updateEmailConfirmationUsedAndVerifyUser(confirmation.id)
-    return userAsSuccessfulResponse
+
+    // generate tokens and build a success response
+    const jwtAccessToken = await this.generateAccessJwt(userAsSuccessfulResponse.id, userAsSuccessfulResponse.email);
+    const { token: jwtRefreshToken, jti } = await this.generateRefreshJwt(userAsSuccessfulResponse.id);
+
+    // Hash and persist the Refresh Token in the database.
+    const hashedRefreshToken: string = await this.hashString(jwtRefreshToken);
+    const msInFuture: number = process.env.JWT_REFRESH_TOKEN_EXPIRATION ? Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION) : (7 * 24 * 60 * 60 * 1000)  // 7 days fallback
+    const expirationDate: Date = new Date(Date.now() + msInFuture); 
+
+    await this.authQueryService.insertRefreshTokenHash(
+      hashedRefreshToken, 
+      userAsSuccessfulResponse.id, 
+      expirationDate,
+      jti
+    );
+
+    // remove providers email hashed password from response
+    delete userAsSuccessfulResponse.providers.email.password
+
+    // log successful login
+    await this.authQueryService.insertUserLoginHistory(userAsSuccessfulResponse.id, ipAddress,'web')
+
+    return {
+      user: userAsSuccessfulResponse,
+      jwtAccessToken: jwtAccessToken,
+      jwtRefreshToken: jwtRefreshToken
+    }
   }
 
 
@@ -260,7 +287,7 @@ export class AuthService {
     }
   }
 
-  async loginCachedUser(refresh_token: string): Promise<any> {
+  async loginCachedUser(refresh_token: string, ipAddress: string): Promise<any> {
     
     const jti = this.extractJti(refresh_token);
 
@@ -304,6 +331,9 @@ export class AuthService {
       newJti,
       newHashedRefreshToken
     )
+
+    // log successful login
+    await this.authQueryService.insertUserLoginHistory(user.id, ipAddress,'web')
 
     delete user.providers.email.password
 

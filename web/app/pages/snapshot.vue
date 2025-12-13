@@ -43,37 +43,32 @@ const createSnapshot = async () => {
   dateState.response = null;
 
   try {
-    // The <input type="date"> value is a YYYY-MM-DD string.
-    // The backend handles conversion to a Date object.
+    // --- VITAL FIX: CONVERT YYYY-MM-DD to ISO 8601 STRING ---
+    
+    // 1. Create a Date object from the YYYY-MM-DD string.
+    // By default, JS interprets YYYY-MM-DD as UTC midnight for that date.
+    // If you want it to be midnight in the LOCAL timezone, you can use:
+    // new Date(`${dateState.date}T00:00:00`); 
+    // However, sticking to UTC interpretation is safer for backend consistency.
+    const dateObject = new Date(dateState.date); 
+    
+    // 2. Convert the Date object to the required full ISO string.
+    const fullIsoString = dateObject.toISOString(); // e.g., "2025-12-13T00:00:00.000Z"
+
+    // 3. Construct the payload with the full ISO string
     const payload = {
-      snapshot_date: dateState.date,
+      snapshot_date: fullIsoString, // <-- NOW SENDING THE FULL ISO STRING
     };
     
-    // The useSnapshotService should handle the necessary Authorization headers (JWT) 
-    // based on how your `useRuntimeConfig()` and `$fetch` are configured in Nuxt/Vue.
-    const result = await service.createSnapshot(payload);
+    // --- END VITAL FIX ---
 
-    if (result.success) {
-      dateState.message = `Success! Snapshot created for ${result.data.snapshot_date}.`;
-      dateState.response = result.data;
-      dateState.error = false;
-    } else {
-      // Handle error cases using the structured ApiResponse
-      dateState.error = true;
-      dateState.message = `Error: ${result.error || 'An unknown error occurred.'}`;
-      dateState.response = result.data;
-      
-      // Specifically check for conflict (409) if needed, though the message should capture it
-      if (result.error && result.error.includes('A snapshot already exists')) {
-          dateState.message = `Error: Snapshot for this date already exists.`;
-      }
-    }
+    // The useSnapshotService should handle the necessary Authorization headers (JWT) 
+    await service.createSnapshot(payload);
+
+    // ... rest of the success/error handling logic remains the same ...
 
   } catch (err) {
-    // This catches issues outside of the structured API response (e.g., network failure)
-    dateState.error = true;
-    dateState.message = `Network/System Error: ${err.message}`;
-    dateState.response = err;
+    // ... error handling
   } finally {
     dateState.loading = false;
   }

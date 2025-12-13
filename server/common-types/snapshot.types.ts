@@ -1,7 +1,7 @@
 export interface SnapshotHeaderDto {
   id: string
   user_id: string
-  snapshot_date: Date
+  snapshot_date: Date | string      // Date fpr api to process string of e.g. '2025-12-16' for succinct response
   items: (SnapshotAssetDto | SnapshotLiabilityDto)[]
   total_assets?: number             // Read-only, calculated value
   total_liablities?: number         // Read-only, calculated value
@@ -13,7 +13,12 @@ export interface SnapshotHeaderDto {
 export interface CreateSnapshotHeaderDto {
   /** The calendar date of the snapshot (e.g., '2025-12-31'). */
   snapshot_date: Date;
-  user_id?: string              // user_id added internally from jwt-guard to use in sql service 
+}
+
+export interface CreateSnapshotHeaderApiDto {
+  /** The calendar date of the snapshot (e.g., '2025-12-31'). */
+  snapshot_date: Date
+  user_id: string              // user_id added internally from jwt-guard to use in sql service 
 }
 
 export interface SnapshotAssetDto {

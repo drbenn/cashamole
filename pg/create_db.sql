@@ -57,7 +57,7 @@ CREATE TABLE transactions (
     updated_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TABLE snapshots (
+CREATE TABLE snapshot_headers (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     snapshot_date DATE NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE snapshots (
 CREATE TABLE "snapshot_assets" (
     id UUID PRIMARY KEY,
     -- Foreign Key to link to the main snapshot
-    snapshot_id UUID NOT NULL REFERENCES snapshots(id) ON DELETE CASCADE,
+    snapshot_id UUID NOT NULL REFERENCES snapshot_headers(id) ON DELETE CASCADE,
     
     -- Core Item Fields
     category VARCHAR(10) NOT NULL DEFAULT 'asset' CHECK (category = 'asset'),
@@ -93,7 +93,7 @@ CREATE TABLE "snapshot_assets" (
 CREATE TABLE "snapshot_liabilities" (
     id UUID PRIMARY KEY,
     -- Foreign Key to link to the main snapshot
-    snapshot_id UUID NOT NULL REFERENCES snapshots(id) ON DELETE CASCADE,
+    snapshot_id UUID NOT NULL REFERENCES snapshot_headers(id) ON DELETE CASCADE,
     
     -- Core Item Fields
     category VARCHAR(10) NOT NULL DEFAULT 'liability' CHECK (category = 'liability'),

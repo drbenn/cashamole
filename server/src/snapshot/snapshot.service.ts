@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { SnapshotQueryService } from './snapshot-query.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { CreateSnapshotHeaderDto, SnapshotHeaderDto } from '@common-types';
+import { CreateSnapshotHeaderApiDto, CreateSnapshotHeaderDto, SnapshotHeaderDto } from '@common-types';
 
 
 @Injectable()
@@ -11,23 +11,40 @@ export class SnapshotService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-  // async createSnapshotHeader(dto: CreateSnapshotHeaderDto): Promise<SnapshotHeaderDto> {
-        
-  //   // 1. Business Rule: Check for Existing Snapshot on this Date
-  //   const exists = await this.snapshotQueryService.checkExistingSnapshot(
-  //       dto.user_id, 
-  //       dto.snapshot_date
-  //   );
+async createSnapshotHeader(dto: CreateSnapshotHeaderApiDto): Promise<SnapshotHeaderDto> {
+    const { user_id, snapshot_date } = dto;
+    const methodName = SnapshotService.name + '.createSnapshotHeader';
 
-  //   if (exists) {
-  //       // Throw a specific error if a snapshot already exists for this user/date combination
-  //       throw new ConflictException(`A snapshot already exists for user ${dto.user_id} on ${dto.snapshot_date.toISOString().split('T')[0]}.`);
-  //   }
+    this.logger.log(
+      `Attempting to create snapshot for user ${user_id} on date ${snapshot_date}`, 
+      methodName
+    );
 
-  //   // 2. Data Persistence: Create the Header
-  //   const newSnapshot = await this.snapshotQueryService.insertSnapshotHeader(dto);
+    // 1. Uniqueness Check: Find if a header already exists
+    const existingHeader = await this.snapshotQueryService.findHeaderByDateAndUser(dto);
 
-  //   // 3. Return the newly created header DTO
-  //   return newSnapshot;
-  // }
+    if (existingHeader) {
+      // If found, throw a 409 Conflict error, preventing duplicate insertion
+      this.logger.warn(
+        `Snapshot creation failed: Entry already exists for user ${user_id} on ${snapshot_date}`, 
+        methodName
+      );
+      // NestJS will automatically convert ConflictException to a 409 HTTP response
+      throw new ConflictException(`A snapshot header already exists for the date ${snapshot_date}.`);
+    }
+
+    // 2. Creation: Proceed only if unique
+    const newHeader = await this.snapshotQueryService.createHeader(dto);
+
+    const cleanHeader: SnapshotHeaderDto = {
+        ...newHeader,
+        // simple date '2025-12-16' for succinct response
+        snapshot_date: new Date(newHeader.snapshot_date).toISOString().split('T')[0], 
+    };
+    
+    this.logger.log(`Successfully created new snapshot header ID: ${newHeader.id}`, methodName);
+
+    return cleanHeader;
+  }
 }
+

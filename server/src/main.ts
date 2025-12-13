@@ -16,9 +16,6 @@ async function bootstrap() {
   
   app.setGlobalPrefix(globalPrefix);
   // app.enableCors()
-
-  console.log('1: ', configService.get<string>('FRONTEND_URL'));
-  console.log('2: ', process.env.FRONTEND_URL)
   
   app.enableCors({
     origin: [configService.get<string>('FRONTEND_URL') || process.env.FRONTEND_URL],
