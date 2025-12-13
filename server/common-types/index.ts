@@ -1,3 +1,5 @@
 export * from './auth.types'
 export * from './transaction.types'
-export * from './snapshot.types'
+export * from './snapshot-header.types'
+export * from './snapshot-asset.types'
+export * from './snapshot-liability.types'
