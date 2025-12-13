@@ -39,15 +39,15 @@ export class SnapshotController {
     return await this.snapshotService.updateSnapshotField(dto)
   }
 
-  @Patch('deactivate/:id')
-  async deactivateSnapshot(
-    @Body() dto: CommonTypes.DeactivateSnapshotDto,
-    @Req() req: Request,
-    @Param() params: any,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<CommonTypes.DeactivateSnapshotDto> {
-    const snapshotId: string = params.id
-    return await this.snapshotService.deactivateSnapshot(dto)
-  }
+  // @Patch('deactivate/:id')
+  // async deactivateSnapshot(
+  //   @Body() dto: CommonTypes.DeactivateSnapshotDto,
+  //   @Req() req: Request,
+  //   @Param() params: any,
+  //   @Res({ passthrough: true }) res: Response,
+  // ): Promise<CommonTypes.DeactivateSnapshotDto> {
+  //   const snapshotId: string = params.id
+  //   return await this.snapshotService.deactivateSnapshot(dto)
+  // }
 
 }

@@ -14,7 +14,7 @@ export class SnapshotQueryService {
 
   async insertSnapshot(dto: SnapshotDto): Promise<SnapshotDto> {
     const queryText = `
-      INSERT INTO "snapshots" (id, user_id, snapshot_date, category, created_at, updated_at, active)
+      INSERT INTO "snapshots" (id, user_id, snapshot_date, items, created_at, updated_at, active)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
     `;
@@ -23,7 +23,7 @@ export class SnapshotQueryService {
       dto.id,
       dto.user_id,
       dto.snapshot_date,
-      dto.category,
+      dto.items,
       dto.created_at,
       dto.updated_at,
       true
@@ -90,32 +90,32 @@ export class SnapshotQueryService {
     }
   }
 
-  async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
-    const queryText = `
-      UPDATE "snapshots" 
-      SET active = $1, updated_at = $2
-      WHERE user_id = $2 AND id = $3 RETURNING *;`  
+  // async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
+  //   const queryText = `
+  //     UPDATE "snapshots" 
+  //     SET active = $1, updated_at = $2
+  //     WHERE user_id = $2 AND id = $3 RETURNING *;`  
 
-    const values = [
-      false,
-      dto.updated_at,
-      dto.user_id,
-      dto.snapshot_id,
-    ];
+  //   const values = [
+  //     false,
+  //     dto.updated_at,
+  //     dto.user_id,
+  //     dto.snapshot_id,
+  //   ];
 
-    try {
-      const result = await this.pgPool.query(queryText, values);   
-      const snapshot: SnapshotDto = result.rows[0]
-      const deactivatedSnapshot: DeactivateSnapshotDto = {
-        user_id: snapshot.user_id,
-        snapshot_id: snapshot.id,
-        active: snapshot.active,
-        updated_at: snapshot.updated_at!
-      }
-      return deactivatedSnapshot
-    } catch (error) {
-      this.logger.log('warn', `Error: snapshot-query-service deactivateSnapshot: ${error}`);
-      throw new Error('Error: snapshot-query-service deactivateSnapshot');
-    }
-  }
+  //   try {
+  //     const result = await this.pgPool.query(queryText, values);   
+  //     const snapshot: SnapshotDto = result.rows[0]
+  //     const deactivatedSnapshot: DeactivateSnapshotDto = {
+  //       user_id: snapshot.user_id,
+  //       snapshot_id: snapshot.id,
+  //       false,
+  //       updated_at: snapshot.updated_at!
+  //     }
+  //     return deactivatedSnapshot
+  //   } catch (error) {
+  //     this.logger.log('warn', `Error: snapshot-query-service deactivateSnapshot: ${error}`);
+  //     throw new Error('Error: snapshot-query-service deactivateSnapshot');
+  //   }
+  // }
 }

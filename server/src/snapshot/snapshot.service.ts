@@ -22,7 +22,7 @@ export class SnapshotService {
     return await this.snapshotQueryService.updateSnapshotField(dto)
   }
 
-  async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
-    return await this.snapshotQueryService.deactivateSnapshot(dto)
-  }
+  // async deactivateSnapshot(dto: DeactivateSnapshotDto): Promise<DeactivateSnapshotDto> {
+  //   return await this.snapshotQueryService.deactivateSnapshot(dto)
+  // }
 }

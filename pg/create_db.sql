@@ -60,17 +60,59 @@ CREATE TABLE transactions (
 CREATE TABLE snapshots (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    snapshot_date TIMESTAMP NOT NULL,
-    category VARCHAR(20) NOT NULL,
+    snapshot_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Optional: Enforce only one snapshot per user per day
+    UNIQUE (user_id, snapshot_date)
+);
+
+CREATE TABLE "snapshot_assets" (
+    id UUID PRIMARY KEY,
+    -- Foreign Key to link to the main snapshot
+    snapshot_id UUID NOT NULL REFERENCES snapshots(id) ON DELETE CASCADE,
+    
+    -- Core Item Fields
+    category VARCHAR(10) NOT NULL DEFAULT 'asset' CHECK (category = 'asset'),
     amount NUMERIC(11,2),
     party VARCHAR(30),
     title VARCHAR(30),
     note TEXT,
-    active BOOLEAN,
-    created_at TIMESTAMP WITH TIME ZONE,
-    updated_at TIMESTAMP WITH TIME ZONE,
-    asset_valuation VARCHAR(10),
-    liability_type VARCHAR(10),
-    liability_interest_rate NUMERIC(4,4),
-    liability_total_loan_value NUMERIC(11,2)
+    active BOOLEAN DEFAULT TRUE,
+    
+    -- Asset Specific
+    asset_valuation VARCHAR(10) CHECK (asset_valuation IN ('book', 'market')),
+    
+    -- Auditing
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE TABLE "snapshot_liabilities" (
+    id UUID PRIMARY KEY,
+    -- Foreign Key to link to the main snapshot
+    snapshot_id UUID NOT NULL REFERENCES snapshots(id) ON DELETE CASCADE,
+    
+    -- Core Item Fields
+    category VARCHAR(10) NOT NULL DEFAULT 'liability' CHECK (category = 'liability'),
+    amount NUMERIC(11,2),
+    party VARCHAR(30),
+    title VARCHAR(30),
+    note TEXT,
+    active BOOLEAN DEFAULT TRUE,
+    
+    -- Liability Specific
+    liability_type VARCHAR(10) CHECK (liability_type IN ('short', 'long')),
+    liability_maturity_date DATE,
+    liability_interest_rate NUMERIC(4,4),
+    liability_total_loan_value NUMERIC(11,2),
+    
+    -- Auditing
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_snapshot_liabilities_snapshot_id ON snapshot_liabilities (snapshot_id);
+
+CREATE INDEX idx_snapshot_assets_snapshot_id ON snapshot_assets (snapshot_id);
