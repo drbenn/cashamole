@@ -12,6 +12,7 @@ export const useAuthService = () => {
       const response = await $fetch(`${apiBase}/auth/register`, {
         method: 'POST',
         body: dto,
+        credentials: 'include'
       })
       return { success: true, data: response }
     }
@@ -54,7 +55,10 @@ export const useAuthService = () => {
 
   const logoutApi = async () => {
     try {
-      const response = await $fetch(`${apiBase}/auth/logout`, { method: 'POST' })
+      const response = await $fetch(`${apiBase}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include' 
+      })
       return { success: true, data: response }
     }
     catch (err) {
@@ -68,6 +72,7 @@ export const useAuthService = () => {
       const response = await $fetch(`${apiBase}/auth/verify-email`, {
         method: 'POST',
         body: dto,
+        credentials: 'include'
       })
       return { success: true, data: response }
     }
@@ -82,6 +87,7 @@ export const useAuthService = () => {
       const response = await $fetch(`${apiBase}/auth/verify-email-new-request`, {
         method: 'POST',
         body: dto,
+        credentials: 'include'
       })
       return { success: true, data: response }
     }
@@ -96,6 +102,7 @@ export const useAuthService = () => {
       const response = await $fetch(`${apiBase}/auth/request-password-reset`, {
         method: 'POST',
         body: dto,
+        credentials: 'include'
       })
       return { success: true, data: response }
     }
@@ -110,6 +117,7 @@ export const useAuthService = () => {
       const response = await $fetch(`${apiBase}/auth/reset-password`, {
         method: 'POST',
         body: dto,
+        credentials: 'include'
       })
       return { success: true, data: response }
     }

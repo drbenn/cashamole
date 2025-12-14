@@ -18,11 +18,7 @@ import { PassportModule } from '@nestjs/passport';
       useFactory: (configService: ConfigService) => ({
               // Use non-null assertion (!) here, as the ?? operator makes it non-null anyway
               secret: configService.get<string>('JWT_SECRET')!, 
-              signOptions: {
-                  // Use non-null assertion (!) here as well.
-                  // TypeScript is satisfied when the result is asserted as non-null string.
-                  expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN')!, 
-              },
+              signOptions: {}, // Empty options object - expiresIn taken care of in auth service generateAccessJwt() & generateRefreshJwt()
             } as JwtModuleOptions), // <--- ASSERT the entire object as the required type
           }),
     EmailModule,

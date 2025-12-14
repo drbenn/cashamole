@@ -34,11 +34,10 @@ export class AuthService {
 
   async generateAccessJwt(userId: string, email: string): Promise<string> {
       const payload: JwtPayload = { sub: userId, email: email, type: 'access' };
-      
-      // Set lifespan to 5-15 minutes!
+
       const jwtAccessToken = this.jwtService.sign(payload, { 
           secret: this.configService.get<string>('JWT_SECRET'),
-          expiresIn: '15m' 
+          expiresIn: '15m'   // hardcoded instead of env bc ts errors...and really when would i even change this?
       });
       return jwtAccessToken;
   }
@@ -58,7 +57,7 @@ export class AuthService {
       // Set lifespan to 7-30 days. Use a unique refresh secret.
       const jwtRefreshToken = this.jwtService.sign(payload, {
           secret: this.configService.get<string>('JWT_SECRET'), 
-          expiresIn: '7d' 
+          expiresIn: '7d'   // hardcoded instead of env bc ts errors...and really when would i even change this?
       });
       
       // 3. Return the token (to send to client) and the JTI (to store in DB)

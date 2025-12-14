@@ -39,9 +39,6 @@ export class AuthController {
     @Req() req: Request,                          // req for capturing and logging ip
     @Res({ passthrough: true }) res: Response,    // Enables passing response
   ): Promise<any> {
-    const sessionToken = req.cookies['jwt'];
-    const refreshToken = req.cookies['refresh_token'];
-
     const refreshTokenCookie = req.cookies['refresh_token'];
     
     if (!refreshTokenCookie) {
@@ -91,17 +88,20 @@ export class AuthController {
     // ----------------------------------------------------
     // Access Token Cookie
     // ----------------------------------------------------
+    const fifteenMinInMs: number = 900000
+
     res.cookie('jwt', jwtAccessToken, {
       ...cookieOptions,
-      maxAge: Number(process.env.JWT_ACCESS_TOKEN_EXPIRATION),
+      maxAge: fifteenMinInMs,
     });
 
     // ----------------------------------------------------
     // Refresh Token Cookie (Usually longer expiration)
     // ----------------------------------------------------
+    const sevenDaysInMs: number = 604800000
     res.cookie('refresh_token', jwtRefreshToken, {
       ...cookieOptions,
-      maxAge: Number(process.env.JWT_REFRESH_TOKEN_EXPIRATION), 
+      maxAge: sevenDaysInMs 
     });
   }
 
