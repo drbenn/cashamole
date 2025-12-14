@@ -8,9 +8,12 @@
 
 <template>
   <div>
-    Yo
-  </div>
-  <div>
-    <!-- <ComboBox></ComboBox> -->
+    <div>
+      Yo
+    </div>
+    <div>
+      <!-- <ComboBox></ComboBox> -->
+    </div>
+
   </div>
 </template>

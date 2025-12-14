@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 
 definePageMeta({
     middleware: ['auth'] // References middleware/auth.ts
@@ -14,4 +14,4 @@ definePageMeta({
 
     </div>
   </div>
-</template>
+</template> -->
