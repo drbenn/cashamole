@@ -288,7 +288,7 @@ export class AuthQueryService {
   }
 
   // delete old refresh token and insert new refresh token from cached login
-  async rotateRefreshToken(userId: string, jti: string, newTokenHash: string): Promise<any> {
+  async rotateRefreshToken(userId: string, jti: string, newTokenHash: string, newRefreshExpiresAt: Date): Promise<any> {
     // Delete all old tokens for this user
     await this.pgPool.query(
       `DELETE FROM user_refresh_tokens WHERE user_id = $1`,
@@ -296,14 +296,13 @@ export class AuthQueryService {
     );
     
     // Insert the new one
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
     const result = await this.pgPool.query(
       `INSERT INTO user_refresh_tokens (token_hash, user_id, expires_at, jti) 
       VALUES ($1, $2, $3, $4) RETURNING *;`,
       [
         newTokenHash,
         userId,
-        expiresAt,
+        newRefreshExpiresAt,
         jti
       ]
     );

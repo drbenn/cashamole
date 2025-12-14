@@ -49,6 +49,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   /**
    * Validates the payload structure and returns the verified user identity.
    * This structure will be attached to req.user.
+   *  
+   * Read-Only Context(Why cant rotate cookies here): The validate method is part of the 
+   * Passport authentication process. Its sole job is to return the authenticated user 
+   * object or throw an error. It does not have access to the HTTP Response object. Cookies, Headers, 
+   * and status codes are set on the Response object, which means you cannot set the new cookies here.
    */
   async validate(payload: any): Promise<any> {
     // 1. Identify the user ID key in the payload (often 'sub', 'id', or 'userId')

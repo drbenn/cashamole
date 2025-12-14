@@ -2,10 +2,11 @@ import { BadRequestException, Body, Controller, Inject, Logger, Param, Patch, Po
 import { SnapshotLiabilityDto, ServiceCreateSnapshotLiabilityDto } from '@common-types';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import * as CommonTypes from '@common-types'
-import { JwtGuard } from 'src/auth/jwt-guard/guards';
 import { SnapshotLiabilityService } from './liabilities.service';
+import { ProactiveRefreshGuard } from 'src/auth/jwt-guard/proactive-jwt.guard';
 
-@UseGuards(JwtGuard)@Controller('snapshot/liabilities')
+@UseGuards(ProactiveRefreshGuard)
+@Controller('snapshot/liabilities')
 export class SnapshotLiabilityController {
   constructor(
     private readonly snapshotLiabilityService: SnapshotLiabilityService,

@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AuthQueryService } from './auth-query.service';
 import { CreateUserDto, JwtPayload, LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto, ResetPasswordDto, VerifyRegistrationDto } from '@common-types';
@@ -286,61 +286,205 @@ export class AuthService {
     }
   }
 
+  // async loginCachedUser(refresh_token: string, ipAddress: string): Promise<any> {
+    
+  //   const jti = this.extractJti(refresh_token);
+
+  //   // 1. LOOKUP BY JTI
+  //   const record = await this.authQueryService.getRefreshTokenRecord(jti);
+    
+  //   // Handle Case A: Record not found (token was revoked or never existed)
+  //   if (!record) {
+  //     throw new ConflictException({
+  //       message: 'Login cached user failed: Invalid refresh token ID or revoked.',
+  //     });
+  //   }
+
+  //   // Handle Case B: Record found, but expired (Check 1)
+  //   if (new Date() > new Date(record.expires_at)) {
+  //     throw new ConflictException({
+  //       message: 'Login cached user failed: Expired refresh token.',
+  //     });
+  //   }
+
+  //   // 2. VERIFY HASH (The Security Check)
+  //   const isMatch: boolean = await this.compareHashedString(refresh_token, record.token_hash);
+    
+  //   // Handle Case C: Token found and not expired, BUT hash does not match (Tampering)
+  //   if (!isMatch) {
+  //     // NOTE: You may want to log or report this as a high-security risk (attempted tampering)
+  //     throw new ConflictException({
+  //       message: 'Login cached user failed: Token verification failed (tampered).',
+  //     });
+  //   }
+    
+  //   // --- SUCCESS PATH (Rotation) ---
+  //   const user = await this.authQueryService.findUserById(record.user_id)
+
+  //   const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
+  //   const { token: newJwtRefreshToken, jti: newJti } = await this.generateRefreshJwt(record.user_id);
+  //   const newHashedRefreshToken: string = await this.hashString(newJwtRefreshToken)
+
+  //   await this.authQueryService.rotateRefreshToken(
+  //     user.id,
+  //     newJti,
+  //     newHashedRefreshToken
+  //   )
+
+  //   // log successful login
+  //   await this.authQueryService.insertUserLoginHistory(user.id, ipAddress,'web')
+
+  //   delete user.providers.email.password
+
+  //   return {
+  //     message: 'Cached Login Success',
+  //     user: user,
+  //     jwtAccessToken: jwtAccessToken,
+  //     jwtRefreshToken: newJwtRefreshToken
+  //   }
+  // }
+
   async loginCachedUser(refresh_token: string, ipAddress: string): Promise<any> {
     
-    const jti = this.extractJti(refresh_token);
+    let newTokens;
+    let user;
 
-    // 1. LOOKUP BY JTI
-    const record = await this.authQueryService.getRefreshTokenRecord(jti);
-    
-    // Handle Case A: Record not found (token was revoked or never existed)
-    if (!record) {
-      throw new ConflictException({
-        message: 'Login cached user failed: Invalid refresh token ID or revoked.',
-      });
+    try {
+      // --- 1. Centralized Token Rotation ---
+      // This single call handles all validation, generation, and DB rotation.
+      newTokens = await this.rotateTokens(refresh_token);
+      
+      // Extract user data from the newly verified access token for the response
+      const payload = this.jwtService.decode(newTokens.accessToken) as { sub: string };
+      user = await this.authQueryService.findUserById(payload.sub);
+
+    } catch (e) {
+      // Catch any errors thrown by rotateTokens (e.g., Expired, Invalid Hash, Revoked)
+      // And throw the appropriate exception for the controller to handle.
+      if (e.message.includes('Invalid refresh token ID')) {
+            throw new ConflictException({ message: 'Login failed: Invalid or revoked refresh token.' });
+      }
+      if (e.message.includes('Expired refresh token')) {
+          throw new ConflictException({ message: 'Login failed: Expired refresh token.' });
+      }
+      if (e.message.includes('Token verification failed')) {
+          throw new ConflictException({ message: 'Login failed: Token verification failed (tampered).' });
+      }
+      // Fallback for other errors
+      throw new InternalServerErrorException('Login failed due to unexpected error.');
     }
 
-    // Handle Case B: Record found, but expired (Check 1)
-    if (new Date() > new Date(record.expires_at)) {
-      throw new ConflictException({
-        message: 'Login cached user failed: Expired refresh token.',
-      });
-    }
-
-    // 2. VERIFY HASH (The Security Check)
-    const isMatch: boolean = await this.compareHashedString(refresh_token, record.token_hash);
+    // --- SUCCESS PATH ---
     
-    // Handle Case C: Token found and not expired, BUT hash does not match (Tampering)
-    if (!isMatch) {
-      // NOTE: You may want to log or report this as a high-security risk (attempted tampering)
-      throw new ConflictException({
-        message: 'Login cached user failed: Token verification failed (tampered).',
-      });
-    }
-    
-    // --- SUCCESS PATH (Rotation) ---
-    const user = await this.authQueryService.findUserById(record.user_id)
-
-    const jwtAccessToken = await this.generateAccessJwt(user.id, user.email);
-    const { token: newJwtRefreshToken, jti: newJti } = await this.generateRefreshJwt(record.user_id);
-    const newHashedRefreshToken: string = await this.hashString(newJwtRefreshToken)
-
-    await this.authQueryService.rotateRefreshToken(
-      user.id,
-      newJti,
-      newHashedRefreshToken
-    )
-
     // log successful login
-    await this.authQueryService.insertUserLoginHistory(user.id, ipAddress,'web')
+    await this.authQueryService.insertUserLoginHistory(user.id, ipAddress,'web');
 
-    delete user.providers.email.password
+    // Clean up the user object before returning
+    delete user.providers.email.password;
 
     return {
       message: 'Cached Login Success',
       user: user,
-      jwtAccessToken: jwtAccessToken,
-      jwtRefreshToken: newJwtRefreshToken
+      jwtAccessToken: newTokens.accessToken,
+      jwtRefreshToken: newTokens.refreshToken
+    };
+  }
+
+
+
+  /**
+   * Validates the old refresh token (via JTI lookup and hash check)
+   * and issues a completely new access and refresh token pair, replacing the old record in the DB.
+   * Used by ProactiveGuard and loginCachedUser.
+   * @param oldRefreshToken The refresh token string from the cookie.
+   * @returns A new pair of tokens and their calculated cookie expiration times.
+   */
+  async rotateTokens(oldRefreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    accessExpiresAt: Date;
+    refreshExpiresAt: Date;
+  }> {
+    const oldJti = this.extractJti(oldRefreshToken); // Assumes you have this utility method
+
+    // --- 1. VALIDATION (Based on your loginCachedUser logic) ---
+    const record = await this.authQueryService.getRefreshTokenRecord(oldJti);
+
+    if (!record) {
+      throw new Error('Invalid refresh token ID or revoked.'); 
+    }
+
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error('Expired refresh token.');
+    }
+    
+    // Check if the token string matches the stored hash
+    const isMatch: boolean = await this.compareHashedString(oldRefreshToken, record.token_hash);
+    
+    if (!isMatch) {
+      // HIGH SECURITY RISK: Revoke session on mismatch
+      throw new Error('Token verification failed (tampered).');
+    }
+    
+    // --- 2. GENERATION (Uses hardcoded durations from other AuthService methods) ---
+    const user = await this.authQueryService.findUserById(record.user_id)
+
+    const newAccessToken = await this.generateAccessJwt(user.id, user.email);
+    const { token: newJwtRefreshToken, jti: newJti } = await this.generateRefreshJwt(record.user_id);
+    const newHashedRefreshToken: string = await this.hashString(newJwtRefreshToken)
+
+    // --- 3. ROTATION (Calculate Expiration and Call Updated Query) ---
+
+    // Constants based on your hardcoded choice
+    const ACCESS_DURATION_STRING = '15m'; 
+    const REFRESH_DURATION_STRING = '7d'; 
+
+    // Calculate the exact expiration date for the database and cookies
+    const REFRESH_DURATION_MS = this.durationToMilliseconds(REFRESH_DURATION_STRING);
+    const newRefreshExpiresAt = new Date(Date.now() + REFRESH_DURATION_MS); 
+
+    // Call the UPDATED query service method (must accept the expiresAt Date now)
+    await this.authQueryService.rotateRefreshToken(
+      user.id,
+      newJti,
+      newHashedRefreshToken,
+      newRefreshExpiresAt // <--- The calculated Date is passed here
+    );
+
+    // --- 4. RETURN METADATA ---
+    
+    // Calculate access token expiration for cookie setting
+    const ACCESS_DURATION_MS = this.durationToMilliseconds(ACCESS_DURATION_STRING);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newJwtRefreshToken,
+      accessExpiresAt: new Date(Date.now() + ACCESS_DURATION_MS),
+      refreshExpiresAt: newRefreshExpiresAt, 
+    };
+  }
+
+  /**
+   * Converts a duration string (e.g., '15m', '7d') into milliseconds.
+   * This is crucial for setting the maxAge/expires option for cookies and DB persistence.
+   * @param durationString The duration string (e.g., '15m', '7d').
+   * @returns The duration in milliseconds.
+   */
+  private durationToMilliseconds(durationString: string): number {
+    const unit = durationString.slice(-1).toLowerCase(); // e.g., 'm', 'h', 'd'
+    const value = parseInt(durationString.slice(0, -1), 10);
+
+    if (isNaN(value)) {
+      // Default to 15 minutes if parsing fails
+      return 900000; 
+    }
+
+    switch (unit) {
+      case 's': return value * 1000;
+      case 'm': return value * 60 * 1000;
+      case 'h': return value * 60 * 60 * 1000;
+      case 'd': return value * 24 * 60 * 60 * 1000;
+      default: return value * 1000; // Assume seconds if no unit provided
     }
   }
 

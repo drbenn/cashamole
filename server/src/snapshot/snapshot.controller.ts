@@ -2,9 +2,9 @@ import { BadRequestException, Body, Controller, Get, Inject, Logger, Param, Patc
 import { SnapshotService } from './snapshot.service'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import * as CommonTypes from '@common-types'
-import { JwtGuard } from 'src/auth/jwt-guard/guards'; // KEEP THIS IMPORT (For TypeScript/Decorator)
+import { ProactiveRefreshGuard } from 'src/auth/jwt-guard/proactive-jwt.guard';
 
-@UseGuards(JwtGuard) // Applied to all controller endpoints
+@UseGuards(ProactiveRefreshGuard) // Applied to all controller endpoints
 @Controller('snapshot')
 export class SnapshotController {
   constructor(

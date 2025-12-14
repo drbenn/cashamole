@@ -3,9 +3,9 @@ import { BadRequestException, Body, Controller, Inject, Logger, Param, Patch, Po
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { SnapshotAssetService } from './assets.service';
 import * as CommonTypes from '@common-types'
-import { JwtGuard } from 'src/auth/jwt-guard/guards';
+import { ProactiveRefreshGuard } from 'src/auth/jwt-guard/proactive-jwt.guard';
 
-@UseGuards(JwtGuard)
+@UseGuards(ProactiveRefreshGuard)
 @Controller('snapshot/assets')
 export class SnapshotAssetController {
   constructor(
