@@ -42,7 +42,7 @@ export class TransactionQueryService {
   async getAllUserTransactions(dto: FetchTransactionsDto): Promise<TransactionDto[]> {
     const queryText = `
       SELECT * FROM transactions
-      WHERE user_id = $1 AND status = $2;
+      WHERE user_id = $1 AND active = $2;
     `;
 
     const values = [
@@ -52,7 +52,7 @@ export class TransactionQueryService {
 
     try {
       const result = await this.pgPool.query(queryText, values);   
-      const transactions: TransactionDto[] = result.rows[0]
+      const transactions: TransactionDto[] = result.rows
       return transactions
     } catch (error) {
       this.logger.log('warn', `Error: transaction-query-service getAllUsersTransactions: ${error}`);
