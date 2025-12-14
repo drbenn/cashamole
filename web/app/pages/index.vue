@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
 import { useUserStore } from '~/stores/userStore';
+import { useAppStore } from '~/stores/appStore';
 
 const appStore = useAppStore();
 const userStore = useUserStore();

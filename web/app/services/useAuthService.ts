@@ -37,18 +37,41 @@ export const useAuthService = () => {
     }
   }
 
-  const loginCachedUser = async (): Promise<ApiResponse> => {
+const loginCachedUser = async (): Promise<ApiResponse> => {
+    // 1. Initialize headers object
+    const headers: Record<string, string> = {};
+
+    // 2. Check if we are on the server (SSR context)
+    if (import.meta.server) {
+      // Get all request headers from the incoming client request
+      const requestHeaders = useRequestHeaders();
+      
+      // If a cookie header exists, use it. This sends the client's cookie to the backend.
+      if (requestHeaders.cookie) {
+        headers['cookie'] = requestHeaders.cookie;
+      }
+      
+      // Optionally, you may need to explicitly include the Authorization header if 
+      // your token is in a header, but for cookie-based auth, 'cookie' is key.
+    }
+
     try {
       const response = await $fetch(`${apiBase}/auth/login-cached`, {
         method: 'GET',
-        credentials: 'include'
-      })
-      console.log(response);
+        // 'include' is still good for the client side, but we must manually add headers for SSR
+        credentials: 'include', 
+        headers: headers // Attach the manually extracted cookie header (if on server)
+      });
+      
+      console.log('API Success:', response);
       
       return { success: true, data: response }
     }
     catch (err) {
       const error = err as FetchError
+      console.error('API Error during login-cached:', error.data?.message);
+      
+      // The 401 response will land here, which is correct for an invalid token
       return { success: false, error: error.data?.message, data: error.data?.data }
     }
   }

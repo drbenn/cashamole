@@ -32,7 +32,7 @@ const GUEST_ROUTES = [
 ];
 
 
-export default defineNuxtRouteMiddleware(async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
+export default defineNuxtRouteMiddleware(async (to: RouteLocationNormalized) => {
   const userStore = useUserStore();
   const { loginCachedUser } = useAuthService();
 
