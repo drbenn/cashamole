@@ -24,13 +24,13 @@ const { isLoggedIn } = storeToRefs(userStore)
     <div class="flex-1">
       <div class="flex flex-row">
         <div v-if="isLoggedIn" class="flex-0">
-          <ClientOnly fallback-tag="div">
+          <!-- <ClientOnly fallback-tag="div"> -->
             <LeftSidebar />
-            <template #fallback>
+            <!-- <template #fallback>
               <div class="h-screen bg-gray-50 border-r flex-col w-36 p-1">-
                 </div>
             </template>
-          </ClientOnly>
+          </ClientOnly> -->
         </div>
         <div class="flex-1">
           <Transition name="fade" mode="out-in">

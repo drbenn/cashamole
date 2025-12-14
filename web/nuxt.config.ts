@@ -43,4 +43,9 @@ export default defineNuxtConfig({
       apiBaseUrl: '', // can be overridden by NUXT_PUBLIC_API_BASE environment variable
     },
   },
+  // dev server for running build locally
+  devServer: {
+    port: 4200, // <--- Set your desired port here
+    host: 'localhost', // Optional: '0.0.0.0' to allow external access
+  },
 })
