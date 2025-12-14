@@ -152,7 +152,7 @@ const cbLabel = ref('Gas Station')
         v-model="cbValue"
         :options="cbSuggestions"
         :placeholder="'Enter text...'"
-        :icon="'🔮'"
+        :emoji="'🔮'"
       />
 
 

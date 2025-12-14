@@ -3,6 +3,7 @@ import 'vue-sonner/style.css'
 import { Toaster } from '@/components/ui/sonner'
 import NavBar from '@/components/custom/shared/NavBar.vue';
 import Footer from './components/custom/shared/Footer.vue';
+import LeftSidebar from '@/components/custom/shared/LeftSidebar.vue';
 const config = useRuntimeConfig();
 const baseUrl = config.public.apiBaseUrl;
 console.log('main baseUrl: ', baseUrl);
@@ -18,9 +19,16 @@ console.log('config: ', config);
 
     <!-- Page Content (grows to fill space) -->
     <main class="flex-1">
-      <Transition name="fade" mode="out-in">
-        <NuxtPage />
-      </Transition>
+      <div class="flex flex-row">
+        <div class="flex-0">
+          <LeftSidebar />
+        </div>
+        <div class="flex-1">
+            <Transition name="fade" mode="out-in">
+              <NuxtPage />
+            </Transition>
+          </div>
+        </div>
     </main>
 
     <!-- Footer -->
