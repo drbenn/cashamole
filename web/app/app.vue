@@ -1,28 +1,12 @@
 <script setup lang="ts">
-  import 'vue-sonner/style.css'
+import 'vue-sonner/style.css'
 import { Toaster } from '@/components/ui/sonner'
 import NavBar from '@/components/custom/shared/NavBar.vue';
 import Footer from './components/custom/shared/Footer.vue';
-import { useAuthService } from './services/useAuthService';
 const config = useRuntimeConfig();
 const baseUrl = config.public.apiBaseUrl;
 console.log('main baseUrl: ', baseUrl);
 console.log('config: ', config);
-
-const { loginCachedUser } = useAuthService()
-const { setUserData } = useUserStore()
-
-const cachedLogin = await loginCachedUser()
-
-console.log(cachedLogin);
-
-if (cachedLogin.success) {
-  setUserData(cachedLogin.data)
-  navigateTo({
-    path: '/home',
-  })
-}
-
 
 </script>
 

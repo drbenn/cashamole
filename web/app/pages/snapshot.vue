@@ -68,6 +68,7 @@ const createSnapshot = async () => {
     // ... rest of the success/error handling logic remains the same ...
 
   } catch (err) {
+    console.error(err)
     // ... error handling
   } finally {
     dateState.loading = false;

@@ -1,9 +1,8 @@
 import * as CommonTypes from '@common-types';
-import { Body, ConflictException, Controller, Get, Inject, InternalServerErrorException, Logger, Post, Req, Res, UnauthorizedException, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Logger, Post, Req, Res, UnauthorizedException, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Response, Request } from 'express';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { StripUserIdInterceptor } from 'src/interceptors/strip-user-id.interceptor';
 
 @UseInterceptors(StripUserIdInterceptor)
