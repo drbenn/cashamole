@@ -34,46 +34,46 @@ export class ProactiveRefreshGuard extends AuthGuard('jwt') {
     // 2. The Simple Check (The part you wanted!)
     // We only proceed here if the token is 100% currently valid.
     try {
-        const accessToken = request.cookies['jwt']; 
-        const refreshToken = request.cookies['refresh_token'];
+      const accessToken = request.cookies['jwt']; 
+      const refreshToken = request.cookies['refresh_token'];
+      
+      // Ensure we have both tokens to attempt rotation
+      if (!accessToken || !refreshToken) {
+        return true; 
+      }
+
+      // Get the expiration time (exp) from the token payload
+      const decoded = this.jwtService.decode(accessToken) as { exp: number } | null;
+      
+      if (!decoded || !decoded.exp) {
+          return true;
+      }
+
+      const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+      const secondsUntilExpiration = decoded.exp - currentTimeInSeconds;
+
+      // If it's going to expire in 5 minutes (300 seconds) or less...
+      if (secondsUntilExpiration <= REFRESH_THRESHOLD_SECONDS) {
+        this.logger.log(`Token for user ${request.user.sub} is low, initiating refresh.`, ProactiveRefreshGuard.name);
         
-        // Ensure we have both tokens to attempt rotation
-        if (!accessToken || !refreshToken) {
-          return true; 
-        }
+        // 3. Refresh the Goddamn Cookies!
+        const newTokens = await this.authService.rotateTokens(refreshToken); 
 
-        // Get the expiration time (exp) from the token payload
-        const decoded = this.jwtService.decode(accessToken) as { exp: number } | null;
+        // Set the new tokens on the response object
+        const isSecure = process.env.NODE_ENV === 'production';
+        const cookieOptions = {
+          httpOnly: true,
+          path: '/',
+          secure: isSecure,
+          sameSite: isSecure ? 'none' as const : 'lax' as const, 
+          // Using 'expires' (Date) to match the service output
+        };
+
+        response.cookie('jwt', newTokens.accessToken, { ...cookieOptions, expires: newTokens.accessExpiresAt }); 
+        response.cookie('refresh_token', newTokens.refreshToken, { ...cookieOptions, expires: newTokens.refreshExpiresAt });
         
-        if (!decoded || !decoded.exp) {
-            return true;
-        }
-
-        const currentTimeInSeconds = Math.floor(Date.now() / 1000);
-        const secondsUntilExpiration = decoded.exp - currentTimeInSeconds;
-
-        // If it's going to expire in 5 minutes (300 seconds) or less...
-        if (secondsUntilExpiration <= REFRESH_THRESHOLD_SECONDS) {
-            this.logger.log(`Token for user ${request.user.sub} is low, initiating refresh.`, ProactiveRefreshGuard.name);
-            
-            // 3. Refresh the Goddamn Cookies!
-            const newTokens = await this.authService.rotateTokens(refreshToken); 
-
-            // Set the new tokens on the response object
-            const isSecure = process.env.NODE_ENV === 'production';
-            const cookieOptions = {
-                httpOnly: true,
-                path: '/',
-                secure: isSecure,
-                sameSite: isSecure ? 'none' as const : 'lax' as const, 
-                // Using 'expires' (Date) to match the service output
-            };
-
-            response.cookie('jwt', newTokens.accessToken, { ...cookieOptions, expires: newTokens.accessExpiresAt }); 
-            response.cookie('refresh_token', newTokens.refreshToken, { ...cookieOptions, expires: newTokens.refreshExpiresAt });
-            
-            this.logger.log(`Cookies refreshed successfully.`, ProactiveRefreshGuard.name);
-        }
+        this.logger.log(`Cookies refreshed successfully.`, ProactiveRefreshGuard.name);
+      }
 
     } catch (e) {
         // If rotation fails (e.g., refresh token is expired/revoked), 
