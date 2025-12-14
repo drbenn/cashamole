@@ -5,31 +5,6 @@ import { useUserStore } from '~/stores/userStore';
 const appStore = useAppStore();
 const userStore = useUserStore();
 
-const showToast = () => {
-  appStore.showToast({
-    message: 'Show basic toast!',
-    description: 'Basic toast blahhhhh',
-    position: 'bottom-center' // Applies the custom purple style defined in main.css
-  });
-}
-
-const showCToast = () => {
-  appStore.showToast({
-    message: 'Show custom toast!',
-    description: 'Custom toast blahhhhh',
-    class: 'my-custom-toast', // Applies the custom purple style defined in main.css
-    position: 'top-right'
-  });
-}
-
-const showVToast = () => {
-  appStore.showToast({
-    message: 'Welcome VIP User!',
-    description: 'You unlocked a secret discount.',
-    class: 'vip-toast' // Applies the custom purple style defined in main.css
-  });
-}
-
 </script>
 
 <template>
@@ -67,16 +42,6 @@ const showVToast = () => {
         </div>
       </div>
     </div>
-
-    <button v-on:click="showToast()">
-      Show Toast
-    </button>
-    <button v-on:click="showCToast()">
-      Show Custom Toast
-    </button>
-    <button v-on:click="showVToast()">
-      Show VIP Toast
-    </button>
 
     <!-- Features Section -->
     <div class="bg-white py-16">
@@ -144,14 +109,6 @@ const showVToast = () => {
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-16">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="text-center text-gray-600">
-          <p>&copy; 2025 Cashamole. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
 

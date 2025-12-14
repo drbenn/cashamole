@@ -88,7 +88,7 @@ const handleVerify = async () => {
     else if (response.success && response.data) {
       setUserData(response.data)
       navigateTo({
-        path: '/home',
+        path: '/dashboard',
       })
     }
     else if (response.error) {

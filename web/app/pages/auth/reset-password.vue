@@ -106,7 +106,7 @@ const handleResetPassword = async () => {
       });
       setUserData(response.data)
       navigateTo({
-        path: '/home',
+        path: '/dashboard',
       })
     }
     else if (response.error) {

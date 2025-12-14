@@ -52,7 +52,7 @@ const handleLogin = async () => {
     if (response.success) {
       setUserData(response.data)
       navigateTo({
-        path: '/home',
+        path: '/dashboard',
       })
     } else {
       errorMessage.value = response.error

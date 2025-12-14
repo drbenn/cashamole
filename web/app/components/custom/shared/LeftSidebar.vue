@@ -25,39 +25,39 @@ const toggleSidebar = () => {
         isExpanded ? 'w-[9rem] p-1' : 'w-[3rem] p-1'
       ]"
     >
-    <TooltipProvider>
-      <div class="flex justify-end mb-8">
-            <Button variant="ghost" size="icon" class="cursor-pointer" @click="toggleSidebar">
-              <component :is="isExpanded ? ChevronsLeft : ChevronsRight" class="h-5 w-5" />
-            </Button>
+      <TooltipProvider>
+        <div class="flex justify-end mb-8">
+              <Button variant="ghost" size="icon" class="cursor-pointer" @click="toggleSidebar">
+                <component :is="isExpanded ? ChevronsLeft : ChevronsRight" class="h-5 w-5" />
+              </Button>
 
-      </div>
-  
-      <nav class="flex flex-col gap-2">
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" class="justify-start cursor-pointer">
-              <Home class="h-5 w-5 shrink-0" :class="isExpanded ? 'mr-3' : ''" />
-              <span v-if="isExpanded" class="truncate">Dashboard</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Home</p>
-          </TooltipContent>
-        </Tooltip>
-        
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" class="justify-start cursor-pointer">
-              <Settings class="h-5 w-5 shrink-0" :class="isExpanded ? 'mr-3' : ''" />
-              <span v-if="isExpanded" class="truncate">Settings</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Settings</p>
-          </TooltipContent>
-        </Tooltip>
-      </nav>
-    </TooltipProvider>
+        </div>
+    
+        <nav class="flex flex-col gap-2">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="ghost" class="justify-start cursor-pointer">
+                <Home class="h-5 w-5 shrink-0" :class="isExpanded ? 'mr-3' : ''" />
+                <span v-if="isExpanded" class="truncate">Dashboard</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Home</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="ghost" class="justify-start cursor-pointer">
+                <Settings class="h-5 w-5 shrink-0" :class="isExpanded ? 'mr-3' : ''" />
+                <span v-if="isExpanded" class="truncate">Settings</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Settings</p>
+            </TooltipContent>
+          </Tooltip>
+        </nav>
+      </TooltipProvider>
     </div>
 </template>
