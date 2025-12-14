@@ -1,6 +1,5 @@
 export interface TransactionDto {
     id: string
-    user_id: string
     transaction_date: Date
     type: 'income' | 'expense'
     amount?: number
@@ -12,19 +11,17 @@ export interface TransactionDto {
     updated_at?: string       // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
 }
 
-export interface FetchTransactionsDto {
+export interface ServiceTransactionDto extends TransactionDto {
   user_id: string
 }
 
 export interface DeactivateTransactionDto {
-  user_id: string
   transaction_id: string
   updated_at: string
   active?: boolean
 }
 
 export interface UpdateTransactionFieldDto {
-  user_id: string
   transaction_id: string
   field: string
   new_value: any

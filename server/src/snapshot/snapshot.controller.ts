@@ -1,10 +1,12 @@
-import { BadRequestException, Body, Controller, Get, Inject, Logger, Param, Patch, Post, Req, UseGuards } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Get, Inject, Logger, Param, Patch, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common'
 import { SnapshotService } from './snapshot.service'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import * as CommonTypes from '@common-types'
 import { ProactiveRefreshGuard } from 'src/auth/jwt-guard/proactive-jwt.guard';
+import { StripUserIdInterceptor } from 'src/interceptors/strip-user-id.interceptor';
 
 @UseGuards(ProactiveRefreshGuard) // Applied to all controller endpoints
+@UseInterceptors(StripUserIdInterceptor)
 @Controller('snapshot')
 export class SnapshotController {
   constructor(

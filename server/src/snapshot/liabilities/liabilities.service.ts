@@ -10,20 +10,6 @@ export class SnapshotLiabilityService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-
-  /**
-   * Cleans the DTO returned from the database layer by stripping the user_id field.
-   * This is a critical security and payload cleanup step.
-   * @param liability The liability object returned from the database.
-   * @returns The public-facing SnapshotLiabilityDto.
-   */
-  private cleanDto(liability: any): SnapshotLiabilityDto {
-    // Destructure user_id away and keep the rest of the fields
-    const { user_id, ...cleanedDto } = liability;
-    // Note: We assert the type here, as we know the base fields match SnapshotLiabilityDto
-    return cleanedDto as SnapshotLiabilityDto; 
-  }
-
   // =================================================================
   // CREATE
   // =================================================================
@@ -34,7 +20,7 @@ export class SnapshotLiabilityService {
     try {
       const resultFromDb = await this.snapshotLiabilityQueryService.createLiability(dto);
       // Transform/Cleanup before returning
-      return this.cleanDto(resultFromDb); 
+      return resultFromDb
     } catch (error) {
       this.logger.error(`Error creating liability: ${error.message}`, SnapshotLiabilityService.name, error.stack);
       
@@ -72,7 +58,7 @@ export class SnapshotLiabilityService {
 
     this.logger.log(`Updated liability ID ${liabilityId} field ${field} for user ${userId}.`, SnapshotLiabilityService.name);
     // Transform/Cleanup before returning
-    return this.cleanDto(updatedLiability);
+    return updatedLiability
   }
   
   // =================================================================
@@ -88,7 +74,7 @@ export class SnapshotLiabilityService {
 
     this.logger.log(`Deactivated liability ID ${liabilityId} for user ${userId}.`, SnapshotLiabilityService.name);
     // Transform/Cleanup before returning
-    return this.cleanDto(updatedLiability);
+    return updatedLiability
   }
 }
 

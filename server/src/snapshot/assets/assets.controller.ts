@@ -1,11 +1,13 @@
 import { SnapshotAssetDto } from '@common-types';
-import { BadRequestException, Body, Controller, Inject, Logger, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Inject, Logger, Param, Patch, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { SnapshotAssetService } from './assets.service';
 import * as CommonTypes from '@common-types'
 import { ProactiveRefreshGuard } from 'src/auth/jwt-guard/proactive-jwt.guard';
+import { StripUserIdInterceptor } from 'src/interceptors/strip-user-id.interceptor';
 
 @UseGuards(ProactiveRefreshGuard)
+@UseInterceptors(StripUserIdInterceptor)
 @Controller('snapshot/assets')
 export class SnapshotAssetController {
   constructor(
