@@ -29,7 +29,7 @@ const allSideNavigation: NavItem[] = [
   { name: 'Home', to: '/dashboard', icon: 'Home', auth: 'loggedIn' },
   { name: 'Transactions', to: '/dashboard/transactions', icon: 'ListChecks', auth: 'loggedIn' },
   { name: 'Snapshots', to: '/dashboard/snapshots', icon: 'GalleryVertical', auth: 'loggedIn' },
-  { name: 'Settings', to: '/user/settings', icon: 'Settings', auth: 'loggedIn' },
+  // { name: 'Settings', to: '/user/settings', icon: 'Settings', auth: 'loggedIn' },
 ];
 
 
@@ -86,13 +86,13 @@ const hideTooltip = () => {
     <div class="flex justify-end mb-1">
       <button 
         :class="[baseButtonClasses, iconSizeClasses]" 
-        @click="toggleSidebar"
         aria-label="Toggle Sidebar"
         :disabled="!iconMap.ChevronsLeft"
+        @click="toggleSidebar"
       >
         <component 
-          v-if="iconMap.ChevronsLeft"
-          :is="isExpanded ? iconMap.ChevronsLeft : iconMap.ChevronsRight" 
+          :is="isExpanded ? iconMap.ChevronsLeft : iconMap.ChevronsRight"
+          v-if="iconMap.ChevronsLeft" 
           class="h-5 w-5" 
         />
       </button>
@@ -113,8 +113,8 @@ const hideTooltip = () => {
             @click="navigate"
           >
             <component 
-              v-if="iconMap[item.icon]"
-              :is="iconMap[item.icon]" 
+              :is="iconMap[item.icon]"
+              v-if="iconMap[item.icon]" 
               class="h-5 w-5 shrink-0" 
               :class="isExpanded ? 'mr-3' : 'mx-auto'" 
             />

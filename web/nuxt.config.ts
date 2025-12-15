@@ -48,4 +48,12 @@ export default defineNuxtConfig({
     port: 4200, // <--- Set your desired port here
     host: 'localhost', // Optional: '0.0.0.0' to allow external access
   },
+  routeRules: {
+    // This tells Nuxt: "Do not attempt to prerender these routes during build."
+    // They will only run in the client's browser after loading.
+    '/dashboard/**': { ssr: false },
+
+    // Example of a single protected page:
+    // '/profile': { ssr: false },
+  },
 })

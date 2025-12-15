@@ -3,12 +3,16 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build",
     "dev": "nuxt dev --port 4200",
+    "clean": "npm run clean:build && npm run clean:cache",
+    "build:ssg": "nuxt generate",
+    "preview-dist": "nuxt preview",
+
+    "build:ssr": "nuxt build",
+    "build": "nuxt build",
     "start": "node .output/server/index.mjs",
     "clean:build": "rm -rf .nuxt .output dist node_modules/.vite",
     "clean:cache": "npm cache clean --force",
-    "clean": "npm run clean:build && npm run clean:cache",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
