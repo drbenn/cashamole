@@ -7,7 +7,6 @@
     "clean": "npm run clean:build && npm run clean:cache",
     "build:ssg": "nuxt generate",
     "preview-dist": "nuxt preview",
-
     "build:ssr": "nuxt build",
     "build": "nuxt build",
     "start": "node .output/server/index.mjs",

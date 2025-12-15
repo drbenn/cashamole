@@ -5,8 +5,9 @@ import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types'
 import type { LoginUserDto, RequestNewVerificationDto } from '@common-types'
 import { z } from 'zod'
-import CashBox from '~/components/custom/shared/CashDrop.vue'
-import CashInput from '~/components/custom/shared/CashInput.vue'
+// import CashBox from '~/components/custom/shared/CashDrop.vue'
+// import CashInput from '~/components/custom/shared/CashInput.vue'
+import TransactionRow from '@/components/custom/TransactionRow.vue'
 const form = ref({
   email: '',
   password: '',
@@ -141,8 +142,8 @@ const cbLabel = ref('Gas Station')
         <h1 class="text-3xl font-bold text-gray-900 cursor-default">Sign In</h1>
       </div>
 
-
-      <CashBox 
+      <TransactionRow />
+      <!-- <CashBox 
         v-model:value="cbValue"
         v-model:label="cbLabel"
         :options="cbOptions"
@@ -153,7 +154,7 @@ const cbLabel = ref('Gas Station')
         :options="cbSuggestions"
         :placeholder="'Enter text...'"
         :emoji="'🔮'"
-      />
+      /> -->
 
 
       <!-- Form Card -->

@@ -102,6 +102,21 @@ function clearInput() {
     }
   });
 }
+
+// exposes input to parent to allow google sheets like "Inline Editing" or "Render-as-Value, Edit-on-Click"
+const focusInput = () => {
+  nextTick(() => {
+    if (inputRef.value) {
+      inputRef.value.focus();
+      // Also ensure the dropdown shows after programmatic focus
+      isFocused.value = true; 
+    }
+  });
+};
+
+defineExpose({
+  focusInput,
+});
 </script>
 
 <template>
