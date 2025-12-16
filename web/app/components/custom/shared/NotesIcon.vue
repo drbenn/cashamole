@@ -118,7 +118,7 @@ watch(() => props.noteText, (newVal) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            class="transition-colors rounded-full"
+            class="transition-colors rounded-full cursor-pointer"
             :class="noteText ? 'text-blue-600 hover:bg-blue-100/50' : 'text-gray-400 hover:bg-gray-100'"
             @click="openDialog"
           >

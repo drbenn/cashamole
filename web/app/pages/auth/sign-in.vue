@@ -5,8 +5,8 @@ import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types'
 import type { LoginUserDto, RequestNewVerificationDto } from '@common-types'
 import { z } from 'zod'
-// import CashBox from '~/components/custom/shared/CashDrop.vue'
-// import CashInput from '~/components/custom/shared/CashInput.vue'
+import SuggestionDropdown from '~/components/custom/shared/SuggestionDropdown.vue'
+import SuggestionInput from '~/components/custom/shared/SuggestionInput.vue'
 import TransactionRow from '@/components/custom/TransactionRow.vue'
 const form = ref({
   email: '',
@@ -143,13 +143,13 @@ const cbLabel = ref('Gas Station')
       </div>
 
       <TransactionRow />
-      <!-- <CashBox 
+      <!-- <SuggestionDropdown 
         v-model:value="cbValue"
         v-model:label="cbLabel"
         :options="cbOptions"
         :placeholder="'🔮'"
       />
-      <CashInput 
+      <SuggestionInput 
         v-model="cbValue"
         :options="cbSuggestions"
         :placeholder="'Enter text...'"
@@ -230,9 +230,9 @@ const cbLabel = ref('Gas Station')
         <button
           v-if="isResendConfirmationAvailable"
           type="button"
-          v-on:click="handleResendConfirmation"
-          :disabled="isResendLoading || !isResendConfirmationAvailable"
           class="w-full bg-black text-white font-semibold py-2.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-4"
+          :disabled="isResendLoading || !isResendConfirmationAvailable"
+          @click="handleResendConfirmation"
         >
           <span v-if="!isResendLoading">Resend Confirmation Email</span>
           <span v-else class="flex items-center justify-center">

@@ -1,44 +1,78 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
-import { Trash2 } from "lucide-vue-next"
-import CashInput from '@/components/custom/shared/CashInput.vue';
+import { ref, nextTick, computed } from 'vue'
+import { Trash2, CalendarIcon } from "lucide-vue-next"
+import { fromDate, getLocalTimeZone, type DateValue, today } from '@internationalized/date' // Added type DateValue
+import SuggestionInput from '~/components/custom/shared/SuggestionInput.vue';
 import NotesIcon from '@/components/custom/shared/NotesIcon.vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+
+
+function formatDate(date: Date | undefined) {
+  if (!date || isNaN(date.getTime())) { // Check if date is undefined or invalid
+    return '';
+  }
+  // Format for display when not editing
+  return date.toLocaleDateString('en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
 
 // --- State and Data ---
 interface TransactionData {
-  id: string; // Added ID for API calls
+  id: string;           // Added ID for API calls on update
+  type: 'income' | 'expense' | ''
+  date: string
   category: string;
   vendor: string;
   amount: string;
-  note: string; // ⭐ NEW NOTE PROPERTY
+  note: string;
 }
 // Define the transaction data (in a real app, this would be a prop from the main list)
 const transaction= ref<TransactionData> ({
   id: '',
+  type: '',
+  date: '',
   category: 'Groceries',
   vendor: 'Blockbuster',
-  amount: '55.99', // Stored as string for the CashInput component
+  amount: '55.99', // Stored as string for the SuggestionInput component
   note: 'This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!'
 });
 
+// Date items
+// const nativeDate = computed(() => {
+//   return new Date(transaction.value.date);
+// })
+const isCalendarOpen = ref(false)
+
 // State to track which field is currently in edit mode
-type TransactionField = 'category' | 'vendor' | 'amount';
+type TransactionField = 'date' | 'category' | 'vendor' | 'amount';
 const editingField = ref<TransactionField | null>(null);
 
-interface CashInputExposed {
+interface SuggestionInputExposed {
   focusInput: () => void;
   // If you expose the input ref itself, you could add:
   // inputRef: Ref<HTMLInputElement | null>; 
 }
 // Template refs for focusing the correct input after V-IF renders it
-const categoryInputRef = ref<CashInputExposed | null>(null);
-const vendorInputRef = ref<CashInputExposed | null>(null);
-const amountInputRef = ref(null);
+const dateInputRef = ref<HTMLInputElement | null>(null);
+const categoryInputRef = ref<SuggestionInputExposed | null>(null);
+const vendorInputRef = ref<SuggestionInputExposed | null>(null);
+const amountInputRef = ref<{ enterEditMode: () => void } | null>(null)
 
 
 // Mock Options (You would fetch these from an API)
 const categoryOptions = ref(['Groceries', 'Rent', 'Gas', 'Income', 'Salary']);
 const vendorOptions = ref(['Amazon',  'Giant', 'Trader Joes'])
+
 // const amountOptions = ref(['100.00', '25.00', '50.00']); // Just for demonstration
 
 
@@ -55,14 +89,92 @@ function enterEditMode(field: TransactionField) {
   // 2. Wait for the component to render (V-IF becomes true) and then focus the input.
   nextTick(() => {
     // Note: The focus logic is now primarily handled by a public method 
-    // we'll define on the CashInput component in the next step.
+    // we'll define on the SuggestionInput component in the next step.
     if (field === 'category' && categoryInputRef.value) {
-      // Assuming CashInput has an exposed method called 'focusInput'
+      // Assuming SuggestionInput has an exposed method called 'focusInput'
       categoryInputRef.value.focusInput(); 
     } else if (field === 'vendor' && vendorInputRef.value) {
       vendorInputRef.value.focusInput();
     }
+    else if (field === 'amount' && amountInputRef.value) {
+      amountInputRef.value.enterEditMode()
+    }
+    else if (field === 'date') {
+      editingField.value = field;
+      nextTick(() => {
+        if (dateInputRef.value) {
+          dateInputRef.value.focus(); 
+          dateInputRef.value.select();
+        }
+      });
+    }
   });
+}
+
+
+/**
+ * Handles the event when the user selects a date from the calendar.
+ * ⭐ FIX: Accepts the emitted DateValue | undefined from the Calendar component.
+ */
+function handleCalendarUpdate(dateValue: DateValue | undefined) {
+  if (!dateValue) return;
+
+  // 1. Convert the custom DateValue object back to a standard JS Date object
+  const selectedDate = dateValue.toDate(getLocalTimeZone());
+
+  // 2. Update the transaction state with the formatted date string
+  transaction.value.date = formatDate(selectedDate);
+  
+  // 3. Trigger the save logic (blur/save)
+  handleSaveAndExit(); 
+
+  // 4. Close the calendar popover
+  isCalendarOpen.value = false;
+}
+
+// The Calendar requires a DateValue object. We use a computed property 
+// that converts the transaction string to DateValue or defaults to today().
+const calendarValue = computed(() => {
+    const dateStr = transaction.value.date;
+    const date = new Date(dateStr);
+    
+    // If the string is a valid date, convert it. Otherwise, use today's date.
+    if (dateStr && !isNaN(date.getTime())) {
+        return fromDate(date, getLocalTimeZone());
+    }
+    return today(getLocalTimeZone());
+});
+
+/**
+ * Helper function to format the DateValue object for display and storage.
+ * We must use the DateValue's toDate() method.
+ */
+function formatDateForDisplay(dateValue: DateValue): string {
+  if (!dateValue) return 'Select date';
+  
+  return dateValue.toDate(getLocalTimeZone()).toLocaleDateString('en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+
+/**
+ * Handles the event when the user selects a date from the calendar.
+ * ⭐ Accepts the emitted DateValue from the Calendar component.
+ */
+function handleDateUpdate(dateValue: DateValue | undefined) {
+  if (!dateValue) return;
+
+  // 1. Update the transaction state with the formatted date string
+  transaction.value.date = formatDateForDisplay(dateValue);
+  
+  // 2. Trigger the save logic (blur/save)
+  handleSaveAndExit(); 
+
+  // 3. Close the calendar popover
+  isCalendarOpen.value = false;
 }
 
 /**
@@ -70,7 +182,7 @@ function enterEditMode(field: TransactionField) {
  */
 function handleSaveAndExit() {
   // CRITICAL FIX for BLUR: Use a timeout to allow the click on the dropdown 
-  // options (in CashInput) to register before exiting edit mode.
+  // options (in SuggestionInput) to register before exiting edit mode.
   setTimeout(() => {
     const fieldName = editingField.value;
 
@@ -145,16 +257,40 @@ function updateNote(newNote: string) {
 <template>
   <div class="transaction-row flex flex-nowrap items-center justify-between gap-4 p-1 border-b border-gray-200 hover:bg-gray-50 h-10 my-4">
     
+
+<div 
+      class="w-[20%] min-w-[6rem] py-0 h-10 px-3 relative flex items-center"
+    >
+      <Popover v-model:open="isCalendarOpen">
+        <PopoverTrigger as-child>
+          <Button
+            id="date-picker"
+            variant="outline"
+            class="w-full justify-between font-normal h-8"
+          >
+            {{ transaction.date || formatDateForDisplay(calendarValue) || "Select date" }}
+            <ChevronDownIcon class="w-4 h-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent class="w-auto overflow-hidden p-0" align="start">
+          <Calendar
+            :model-value="calendarValue"
+            @update:model-value="handleDateUpdate"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+
     <div 
       class="w-[80%] min-w-[8rem] cursor-pointer py-0 h-10"
       @click="enterEditMode('category')"
     >
       <div v-if="editingField === 'category'" class="w-full">
-        <CashInput
+        <SuggestionInput
           ref="categoryInputRef"
           v-model="transaction.category"
           :options="categoryOptions"
-          placeholder="Enter Category"
+          placeholder="Category"
           
           class="w-full" 
           @blur="handleSaveAndExit"
@@ -171,7 +307,7 @@ function updateNote(newNote: string) {
       @click="enterEditMode('vendor')"
     >
       <div v-if="editingField === 'vendor'" class="w-full">
-        <CashInput
+        <SuggestionInput
           ref="vendorInputRef"
           v-model="transaction.vendor"
           :options="vendorOptions"
@@ -196,9 +332,13 @@ function updateNote(newNote: string) {
           ref="amountInputRef"
           v-model="transaction.amount"
           placeholder="0.00"
-          class="w-full text-center"
-          @blur="handleSaveAndExit" 
-          @keydown.enter="handleSaveAndExit"
+          class="w-full text-center focus:outline-none border-b border-blue-500"
+          inputmode="decimal" 
+          type="text"
+                  pattern="[0-9]*[.,]?[0-9]*"
+        @blur="handleSaveAndExit"
+        @keydown.enter="handleSaveAndExit"
+
         >
       </div>
       <div v-else class="display-value text-gray-900 font-light text-center">
