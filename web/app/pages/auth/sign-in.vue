@@ -5,9 +5,7 @@ import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types'
 import type { LoginUserDto, RequestNewVerificationDto } from '@common-types'
 import { z } from 'zod'
-import SuggestionDropdown from '~/components/custom/shared/SuggestionDropdown.vue'
-import SuggestionInput from '~/components/custom/shared/SuggestionInput.vue'
-import TransactionRow from '@/components/custom/TransactionRow.vue'
+
 const form = ref({
   email: '',
   password: '',
@@ -105,27 +103,7 @@ const handleResendConfirmation = async () => {
   }
 }
 
-const cbOptions = [
-  { value: 'amazon_services', label: 'Amazon Services' },
-  { value: 'utility_company', label: 'Utility Company' },
-  { value: 'microsoft_corp', label: 'Microsoft Corporation' },
-  { value: 'local_grocery', label: 'Local Grocery Store' },
-  { value: 'gas_station', label: 'Gas Station' },
-  { value: 'software_a', label: 'Software Subscription A' },
-]
-const cbSuggestions = [
-  'Amazon Services',
-  'Utility Company',
-  'Microsoft Corporation',
-  'Local Grocery Store',
-  'Gas Station',
-  'Software Subscription A'
-]
 
-// 3. Define the reactive variable to hold the selected value
-// This variable will automatically be updated by v-model
-const cbValue = ref('gas_station')
-const cbLabel = ref('Gas Station')
 </script>
 
 
@@ -141,21 +119,6 @@ const cbLabel = ref('Gas Station')
         </div>
         <h1 class="text-3xl font-bold text-gray-900 cursor-default">Sign In</h1>
       </div>
-
-      <TransactionRow />
-      <!-- <SuggestionDropdown 
-        v-model:value="cbValue"
-        v-model:label="cbLabel"
-        :options="cbOptions"
-        :placeholder="'🔮'"
-      />
-      <SuggestionInput 
-        v-model="cbValue"
-        :options="cbSuggestions"
-        :placeholder="'Enter text...'"
-        :emoji="'🔮'"
-      /> -->
-
 
       <!-- Form Card -->
       <div class="bg-white rounded-lg shadow-sm p-8">

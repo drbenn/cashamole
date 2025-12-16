@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, nextTick, computed } from 'vue'
-import { Trash2, CalendarIcon } from "lucide-vue-next"
-import { fromDate, getLocalTimeZone, type DateValue, today } from '@internationalized/date' // Added type DateValue
+import { Trash2 } from "lucide-vue-next"
+import { fromDate, getLocalTimeZone, startOfMonth, endOfMonth, type DateValue, today } from '@internationalized/date' // Added type DateValue
 import SuggestionInput from '~/components/custom/shared/SuggestionInput.vue';
 import NotesIcon from '@/components/custom/shared/NotesIcon.vue'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
@@ -14,18 +13,29 @@ import {
 } from '@/components/ui/popover'
 
 
-function formatDate(date: Date | undefined) {
-  if (!date || isNaN(date.getTime())) { // Check if date is undefined or invalid
-    return '';
-  }
-  // Format for display when not editing
-  return date.toLocaleDateString('en-US', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
+// function formatDate(date: Date | undefined) {
+//   if (!date || isNaN(date.getTime())) { // Check if date is undefined or invalid
+//     return '';
+//   }
+//   // Format for display when not editing
+//   return date.toLocaleDateString('en-US', {
+//     day: '2-digit',
+//     month: 'short',
+//     year: 'numeric',
+//   })
+// }
 
+
+
+// 2. The Lower Bound (Start of that specific month)
+const monthStart = computed(() => {
+  return startOfMonth(fromDate(transaction.value.date ? new Date(transaction.value.date) : new Date(), getLocalTimeZone()));
+});
+
+// 3. The Upper Bound (End of that specific month)
+const monthEnd = computed(() => {
+  return endOfMonth(fromDate(transaction.value.date ? new Date(transaction.value.date) : new Date(), getLocalTimeZone()));
+});
 // --- State and Data ---
 interface TransactionData {
   id: string;           // Added ID for API calls on update
@@ -40,7 +50,7 @@ interface TransactionData {
 const transaction= ref<TransactionData> ({
   id: '',
   type: '',
-  date: '',
+  date: '2025-12-01T05:00:00.000Z',
   category: 'Groceries',
   vendor: 'Blockbuster',
   amount: '55.99', // Stored as string for the SuggestionInput component
@@ -116,66 +126,21 @@ function enterEditMode(field: TransactionField) {
  * Handles the event when the user selects a date from the calendar.
  * ⭐ FIX: Accepts the emitted DateValue | undefined from the Calendar component.
  */
-function handleCalendarUpdate(dateValue: DateValue | undefined) {
-  if (!dateValue) return;
+// function handleCalendarUpdate(dateValue: DateValue | undefined) {
+//   if (!dateValue) return;
 
-  // 1. Convert the custom DateValue object back to a standard JS Date object
-  const selectedDate = dateValue.toDate(getLocalTimeZone());
+//   // 1. Convert the custom DateValue object back to a standard JS Date object
+//   const selectedDate = dateValue.toDate(getLocalTimeZone());
 
-  // 2. Update the transaction state with the formatted date string
-  transaction.value.date = formatDate(selectedDate);
+//   // 2. Update the transaction state with the formatted date string
+//   transaction.value.date = formatDate(selectedDate);
   
-  // 3. Trigger the save logic (blur/save)
-  handleSaveAndExit(); 
+//   // 3. Trigger the save logic (blur/save)
+//   handleSaveAndExit(); 
 
-  // 4. Close the calendar popover
-  isCalendarOpen.value = false;
-}
-
-// The Calendar requires a DateValue object. We use a computed property 
-// that converts the transaction string to DateValue or defaults to today().
-const calendarValue = computed(() => {
-    const dateStr = transaction.value.date;
-    const date = new Date(dateStr);
-    
-    // If the string is a valid date, convert it. Otherwise, use today's date.
-    if (dateStr && !isNaN(date.getTime())) {
-        return fromDate(date, getLocalTimeZone());
-    }
-    return today(getLocalTimeZone());
-});
-
-/**
- * Helper function to format the DateValue object for display and storage.
- * We must use the DateValue's toDate() method.
- */
-function formatDateForDisplay(dateValue: DateValue): string {
-  if (!dateValue) return 'Select date';
-  
-  return dateValue.toDate(getLocalTimeZone()).toLocaleDateString('en-US', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-
-/**
- * Handles the event when the user selects a date from the calendar.
- * ⭐ Accepts the emitted DateValue from the Calendar component.
- */
-function handleDateUpdate(dateValue: DateValue | undefined) {
-  if (!dateValue) return;
-
-  // 1. Update the transaction state with the formatted date string
-  transaction.value.date = formatDateForDisplay(dateValue);
-  
-  // 2. Trigger the save logic (blur/save)
-  handleSaveAndExit(); 
-
-  // 3. Close the calendar popover
-  isCalendarOpen.value = false;
-}
+//   // 4. Close the calendar popover
+//   isCalendarOpen.value = false;
+// }
 
 /**
  * Handles both the blur (clicking away) and Enter key press to exit edit mode.
@@ -186,6 +151,14 @@ function handleSaveAndExit() {
   setTimeout(() => {
     const fieldName = editingField.value;
 
+    console.log('6. handleSaveAndExit field name: ', fieldName);
+    const key = fieldName as keyof typeof transaction.value; 
+    console.log('7. handleSaveAndExit transaction value: ', transaction.value);
+    
+    console.log('8. handleSaveAndExit transaction.value[key]: ', transaction.value[key]);
+    
+    
+
     // 1. Save logic (In a real app, you would dispatch an API call here)
     // Check that we are definitely in an editing state
     if (fieldName) {
@@ -193,8 +166,10 @@ function handleSaveAndExit() {
         // This tells TypeScript: "fieldName is a valid key of the transaction object."
         const key = fieldName as keyof typeof transaction.value; 
         
-        console.log(`Saved ${fieldName}: ${transaction.value[key]}`);
+        console.log(`9. Saved ${fieldName}: ${transaction.value[key]}`);
     }
+    
+    console.log('10. handleSaveAndExit final form result: ', transaction.value);
     
     // 2. Reset the state to show the static value
     editingField.value = null;
@@ -251,35 +226,218 @@ function updateNote(newNote: string) {
   // This is where you would dispatch an API call to save the note.
   console.log(`Note updated locally and ready for API save: ${newNote}`);
 }
+
+
+// The Calendar requires a DateValue object. We use a computed property 
+// that converts the transaction string to DateValue or defaults to today().
+// const calendarValue = computed(() => {
+//     const dateStr = transaction.value.date;
+//     const date = new Date(dateStr);
+    
+//     // If the string is a valid date, convert it. Otherwise, use today's date.
+//     if (dateStr && !isNaN(date.getTime())) {
+//         return fromDate(date, getLocalTimeZone());
+//     }
+//     return today(getLocalTimeZone());
+// });
+
+const date = ref(today(getLocalTimeZone())) as Ref<DateValue>
+
+const calendarValue = computed(() => {
+  if (!transaction.value.date) {
+    return today(getLocalTimeZone());
+  }
+  
+  // Create a JS Date from the ISO string
+  const jsDate = new Date(transaction.value.date);
+  
+  // If valid, convert to the Shadcn-compatible DateValue
+  if (!isNaN(jsDate.getTime())) {
+    return fromDate(jsDate, getLocalTimeZone());
+  }
+  
+  return today(getLocalTimeZone());
+});
+
+/**
+ * Handles the event when the user selects a date from the calendar.
+ * ⭐ Accepts the emitted DateValue from the Calendar component.
+ */
+function handleDateUpdate(dateValue: DateValue | undefined) {
+  console.log('1. handleDateUpdate - datevalue: ', dateValue);   
+  if (!dateValue) return;
+  console.log('2. handleDateUpdate - dateValue Valid - setting form value with processing through formatDisplayDay');
+  // 1. Update the transaction state with the formatted date string
+  const isoDateStringForForm = formatDateForForm(dateValue)
+
+  if (isoDateStringForForm) {
+    transaction.value.date = isoDateStringForForm
+  }
+
+  console.log('5. handleDateUpdate - formatted date set as form value: ', isoDateStringForForm);
+  
+  
+  
+  // 2. Trigger the save logic (blur/save)
+  handleSaveAndExit(); 
+
+  // 3. Close the calendar popover
+  isCalendarOpen.value = false;
+}
+
+/**
+ * Helper function to format the DateValue object for display and storage.
+ * We must use the DateValue's toDate() method.
+ */
+function formatDateForForm(dateValue: DateValue): string | null {
+  console.log('3. formatDisplayDate dateValue: ', dateValue);
+  
+  if (!dateValue) return null;
+  console.log('dv to date: ', dateValue.toDate(getLocalTimeZone()).toISOString());
+  
+  const formDateValue = dateValue.toDate(getLocalTimeZone()).toISOString()
+  // "Dec 16, 2025" or similar
+  // const displayDate = dateValue.toDate(getLocalTimeZone()).toLocaleDateString('en-US', {
+  //   day: '2-digit',
+  //   month: 'short',
+  //   year: 'numeric',
+  // })
+  // const date = new Date(transaction.value.date);
+
+  console.log('4: formatDisplayDate date object: ', date);
+  
+
+  return formDateValue
+  // if (isNaN(date.getTime())) return null;
+
+  // Return "Dec 16, 2025" or similar
+  // return dateValue.toDate(getLocalTimeZone()).toLocaleDateString('en-US', {
+  //   day: '2-digit',
+  //   month: 'short',
+  //   year: 'numeric',
+  // })
+
+
+  // return 'yo!'
+
+
+  // return new Intl.DateTimeFormat('en-US', {
+  //   month: 'short',
+  //   day: 'numeric',
+  //   year: 'numeric'
+  // }).format(date);
+}
+
+// provides display of date via date form value (ISOstring)
+const formattedDisplayDate = computed(() => {
+  if (!transaction.value.date) return 'Date';
+  
+  const date = new Date(transaction.value.date);
+  if (isNaN(date.getTime())) return 'Date';
+
+  // Return "Dec 16, 2025" or similar
+  // return new Intl.DateTimeFormat('en-US', {
+  //   month: 'short',
+  //   day: 'numeric',
+  //   year: 'numeric'
+  // }).format(date);
+    return date.toLocaleDateString('en-US', {
+      year: "2-digit",
+      month: "2-digit",
+      day: "2-digit",
+    })
+});
+
+// --- 2. CONVERT FROM DATEVALUE TO ISO STRING (For Storage) ---
+// function handleDateUpdate(dateValue: DateValue | undefined) {
+//   if (!dateValue) return;
+
+//   // Convert DateValue -> JS Date -> ISO String
+//   const jsDate = dateValue.toDate(getLocalTimeZone());
+//   transaction.value.date = jsDate.toISOString(); // Store as ISO
+  
+//   // Close and Save
+//   isCalendarOpen.value = false;
+//   handleSaveAndExit(); 
+// }
 </script>
 
 
 <template>
-  <div class="transaction-row flex flex-nowrap items-center justify-between gap-4 p-1 border-b border-gray-200 hover:bg-gray-50 h-10 my-4">
+  <div class="transaction-row flex flex-nowrap items-center justify-between gap-0 p-1 border-b border-gray-200 hover:bg-gray-50 h-10 my-4 bg-red-100 w-full">
     
 
-<div 
-      class="w-[20%] min-w-[6rem] py-0 h-10 px-3 relative flex items-center"
-    >
-      <Popover v-model:open="isCalendarOpen">
-        <PopoverTrigger as-child>
-          <Button
-            id="date-picker"
-            variant="outline"
-            class="w-full justify-between font-normal h-8"
-          >
-            {{ transaction.date || formatDateForDisplay(calendarValue) || "Select date" }}
-            <ChevronDownIcon class="w-4 h-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent class="w-auto overflow-hidden p-0" align="start">
-          <Calendar
-            :model-value="calendarValue"
-            @update:model-value="handleDateUpdate"
-          />
-        </PopoverContent>
-      </Popover>
+    <div 
+      class="w-[20%] min-w-[4.65rem] py-0 h-10 relative flex items-center"
+      @click="enterEditMode('date')"
+      >
+      <div class="w-full h-full flex items-center hover:bg-gray-100 hover:border-b hover:border-gray-400">
+        <!-- <div v-if="editingField === 'date'" class="w-full h-full flex items-center bg-blue-200"> -->
+            <Popover v-model:open="isCalendarOpen">
+              <PopoverTrigger as-child>
+                <Button variant="ghost" class="h-10 min-w-[4.65rem] justify-between font-normal rounded-none px-2 cursor-pointer">
+                  <!-- <CalendarIcon class="size-4 text-gray-500 hover:text-gray-700" /> -->
+                  {{ formattedDisplayDate }}
+                  
+                </Button>
+              </PopoverTrigger>
+              
+              <PopoverContent class="w-auto p-0" align="start">
+                <Calendar
+                  class="[&_svg]:hidden"
+                  :model-value="calendarValue"
+                  :min-value="monthStart"
+                  :max-value="monthEnd"
+                  @update:model-value="handleDateUpdate"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <!-- <div v-else class="text-base font-medium text-gray-600">
+            {{ formattedDisplayDate }}
+          </div> -->
     </div>
+
+    <!-- <div 
+      class="w-[20%] min-w-[6rem] cursor-pointer py-0 h-10 px-3 relative"
+      @click="enterEditMode('date')"
+    >
+      <div v-if="editingField === 'date'" class="w-full h-full flex items-center">
+        
+        <Popover v-model:open="isCalendarOpen">
+            
+          <Input
+            id="date-input"
+            ref="dateInputRef"
+            v-model="transaction.date"
+            placeholder="e.g., Today or 1/15/2026"
+            class="bg-background pr-10 h-8 border-b border-blue-500 focus-visible:ring-0"
+            @blur="handleSaveAndExit"
+            @keydown.enter="handleSaveAndExit"
+          />
+
+          <PopoverTrigger as-child>
+            <Button
+              id="date-picker"
+              variant="ghost"
+              class="absolute top-1/2 right-2 size-6 -translate-y-1/2"
+              @mousedown.prevent >
+              <CalendarIcon class="size-4 text-gray-500 hover:text-gray-700" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent class="w-auto overflow-hidden p-0" align="start">
+            <Calendar
+              :model-value="calendarValue" @update:model-value="handleCalendarUpdate" />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div v-else class="display-value w-full text-base font-medium text-gray-600 py-2">
+        {{ formatDate(new Date(transaction.date)) || 'Date' }}
+      </div>
+    </div> -->
 
     <div 
       class="w-[80%] min-w-[8rem] cursor-pointer py-0 h-10"
@@ -297,7 +455,7 @@ function updateNote(newNote: string) {
           @keydown.enter="handleSaveAndExit"
         />
       </div>
-      <div v-else class="display-value w-full text-base font-medium text-gray-800 py-2 px-3">
+      <div v-else class="display-value w-full text-base font-medium text-gray-800 py-2 px-3 hover:bg-gray-100 hover:border-b hover:border-gray-400">
         {{ transaction.category || 'Category' }}
       </div>
     </div>
@@ -318,21 +476,21 @@ function updateNote(newNote: string) {
           @keydown.enter="handleSaveAndExit"
         />
       </div>
-      <div v-else class="display-value w-full text-base font-medium text-gray-800 py-2 px-3">
+      <div v-else class="display-value w-full text-base font-medium text-gray-800 py-2 px-3 hover:bg-gray-100 hover:border-b hover:border-gray-400">
         {{ transaction.vendor || 'Vendor' }}
       </div>
     </div>
 
     <div 
-      class="w-[20%] min-w-[5rem] cursor-pointer py-2 text-right"
+      class="w-[20%] min-w-[5rem] cursor-pointer py-2 text-right "
       @click="enterEditMode('amount')"
     >
-      <div v-if="editingField === 'amount'" class="w-ful text-gray-900 font-light">
+      <div v-if="editingField === 'amount'" class="w-ful text-gray-900 font-light border-b hover:border-gray-200">
         <input
           ref="amountInputRef"
           v-model="transaction.amount"
           placeholder="0.00"
-          class="w-full text-center focus:outline-none border-b border-blue-500"
+          class="w-full text-center focus:outline-none border-b border-gray-400 py-2"
           inputmode="decimal" 
           type="text"
                   pattern="[0-9]*[.,]?[0-9]*"
@@ -341,23 +499,27 @@ function updateNote(newNote: string) {
 
         >
       </div>
-      <div v-else class="display-value text-gray-900 font-light text-center">
+      <div v-else class="display-value text-gray-900 font-light text-center py-2 hover:bg-gray-100 hover:border-b hover:border-gray-400">
         {{ formatAmount(transaction.amount) || '0.00' }}
       </div>
     </div>
 
-    <NotesIcon 
-      :note-text="transaction.note"
-      @update-note="updateNote"
-    />
+    <div>
+      <NotesIcon 
+        :note-text="transaction.note"
+        @update-note="updateNote"
+      />
+    </div>
 
-    <button 
+    <div>
+      <button 
         title="Deactivate Transaction"
-        class="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+        class="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer bg-transparent"
         @click="handleDeactivateClick"
       >
         <Trash2 class="w-4 h-4" />
-    </button>
+      </button>
+    </div>
     
   </div>
 </template>

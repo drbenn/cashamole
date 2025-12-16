@@ -2,10 +2,32 @@
 import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
 import { useUserStore } from '~/stores/userStore';
 import { useAppStore } from '~/stores/appStore';
+import TransactionRow from '@/components/custom/TransactionRow.vue'
 
 const appStore = useAppStore();
 const userStore = useUserStore();
 
+const cbOptions = [
+  { value: 'amazon_services', label: 'Amazon Services' },
+  { value: 'utility_company', label: 'Utility Company' },
+  { value: 'microsoft_corp', label: 'Microsoft Corporation' },
+  { value: 'local_grocery', label: 'Local Grocery Store' },
+  { value: 'gas_station', label: 'Gas Station' },
+  { value: 'software_a', label: 'Software Subscription A' },
+]
+const cbSuggestions = [
+  'Amazon Services',
+  'Utility Company',
+  'Microsoft Corporation',
+  'Local Grocery Store',
+  'Gas Station',
+  'Software Subscription A'
+]
+
+// 3. Define the reactive variable to hold the selected value
+// This variable will automatically be updated by v-model
+const cbValue = ref('gas_station')
+const cbLabel = ref('Gas Station')
 </script>
 
 <template>
@@ -25,6 +47,9 @@ const userStore = useUserStore();
         <h1 class="text-5xl sm:text-6xl font-bold text-gray-900 mb-6">
           Take Control of Your Money
         </h1>
+        <div>
+          <TransactionRow />
+        </div>
         <p class="text-xl text-gray-600 mb-8">
           A privacy-first platform to manage your finances across web and desktop. Track, sync, and grow your wealth.
         </p>
