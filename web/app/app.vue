@@ -49,14 +49,14 @@ const { isLoggedIn } = storeToRefs(userStore)
 <style>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.075s ease;
+  transition: opacity 0.05s ease;
 }
 
 .fade-enter-from {
-  opacity: 0.1;
+  opacity: 0.5;
 }
 
 .fade-leave-to {
-  opacity: 0.1;
+  opacity: 0.5;
 }
 </style>

@@ -8,7 +8,7 @@ const inputRef = ref<HTMLInputElement | null>(null)
 // 1. Define Props (SIMPLIFIED: Single modelValue, options is string[])
 const props = defineProps<{
     /** The final text in the input (bound via v-model) */
-    modelValue: string, // Changed from 'value' back to 'modelValue' for standard v-model
+    modelValue: string | undefined, // Changed from 'value' back to 'modelValue' for standard v-model
     //  placeholder for input box
     placeholder?: string,
     /** The list of selectable options (NOW ARRAY OF STRINGS) */
@@ -36,7 +36,7 @@ watch(() => props.modelValue, (newText) => {
 
 // Watch local typing and emit change immediately
 watch(inputDisplay, (newText) => {
-    emit('update:modelValue', newText)
+    emit('update:modelValue', newText || '')
 });
 
 
@@ -135,7 +135,7 @@ defineExpose({
         @keydown.enter="handleEnter"
       >
       <button
-          v-if="inputDisplay.length > 0"
+          v-if="inputDisplay && inputDisplay.length > 0"
           type="button"
           class="absolute inset-y-0 right-0 flex items-center justify-center box-border
                 w-10 h-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer" 

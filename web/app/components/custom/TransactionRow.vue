@@ -11,22 +11,49 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import type { TransactionData, TransactionField } from '~/types/transaction.types';
+import type { TransactionField } from '~/types/transaction.types';
 
-// Define the transaction data (in a real app, this would be a prop from the main list)
-const transaction= ref<TransactionData> ({
-  id: '',
-  type: '',
-  date: '2025-12-01T05:00:00.000Z',
-  category: 'Groceries',
-  vendor: 'Blockbuster',
-  amount: '55.99', // Stored as string for the SuggestionInput component
-  note: 'This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!'
+interface Props {
+  transaction: {
+    id: string;
+    type: 'income' | 'expense'
+    transaction_date: string;
+    category?: string;
+    vendor?: string;
+    amount?: string | number;
+    note?: string;
+  };
+  categories: string[];
+  allVendors: Record<string, string[]>;
+}
+
+const props = defineProps<Props>();
+const transaction = toRef(props, 'transaction');
+
+// --- Logic to get specific vendors for the current category ---
+const currentVendorOptions = computed(() => {
+  const cat = props.transaction.category;
+  
+  // Look up vendors for the current category, fallback to empty array
+  if (cat) {
+    return props.allVendors[cat]
+  } else return [];
 });
 
-// Mock Options (You would fetch these from an API)
-const categoryOptions = ref(['Groceries', 'Rent', 'Gas', 'Income', 'Salary']);
-const vendorOptions = ref(['Amazon',  'Giant', 'Trader Joes'])
+// Define the transaction data (in a real app, this would be a prop from the main list)
+// const transaction= ref<TransactionData> ({
+//   id: '',
+//   type: '',
+//   transaction_date: '2025-12-01T05:00:00.000Z',
+//   category: 'Groceries',
+//   vendor: 'Blockbuster',
+//   amount: '55.99', // Stored as string for the SuggestionInput component
+//   note: 'This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!This is a note! BOOYAH!'
+// });
+
+// // Mock Options (You would fetch these from an API)
+// const categoryOptions = ref(['Groceries', 'Rent', 'Gas', 'Income', 'Salary']);
+// const vendorOptions = ref(['Amazon',  'Giant', 'Trader Joes'])
 
 
 // State to track which field is currently in edit mode
@@ -140,18 +167,18 @@ const isCalendarOpen = ref(false)
 
 // The Lower Bound to restrict to active month (Start of that specific month)
 const monthStart = computed(() => {
-  return startOfMonth(fromDate(transaction.value.date ? new Date(transaction.value.date) : new Date(), getLocalTimeZone()));
+  return startOfMonth(fromDate(transaction.value.transaction_date ? new Date(transaction.value.transaction_date) : new Date(), getLocalTimeZone()));
 });
 
 // The Upper Bound to restrict to active month (End of that specific month)
 const monthEnd = computed(() => {
-  return endOfMonth(fromDate(transaction.value.date ? new Date(transaction.value.date) : new Date(), getLocalTimeZone()));
+  return endOfMonth(fromDate(transaction.value.transaction_date ? new Date(transaction.value.transaction_date) : new Date(), getLocalTimeZone()));
 });
 // provides display of date via date form value (ISOstring)
 const formattedDisplayDate = computed(() => {
-  if (!transaction.value.date) return 'Date';
+  if (!transaction.value.transaction_date) return 'Date';
   
-  const date = new Date(transaction.value.date);
+  const date = new Date(transaction.value.transaction_date);
   if (isNaN(date.getTime())) return 'Date';
 
   return date.toLocaleDateString('en-US', {
@@ -162,12 +189,12 @@ const formattedDisplayDate = computed(() => {
 });
 
 const calendarValue = computed((): DateValue => {
-  if (!transaction.value.date) {
+  if (!transaction.value.transaction_date) {
     return today(getLocalTimeZone());
   }
   
   // Create a JS Date from the ISO string
-  const jsDate = new Date(transaction.value.date);
+  const jsDate = new Date(transaction.value.transaction_date);
   
   // If valid, convert to the Shadcn-compatible DateValue
   if (!isNaN(jsDate.getTime())) {
@@ -196,7 +223,7 @@ function handleDateUpdate(dateValue: DateValue | undefined) {
   // 1. Update the transaction state with the formatted date string
   const isoDateStringForForm = formatDateForForm(dateValue)
   if (isoDateStringForForm) {
-    transaction.value.date = isoDateStringForForm
+    transaction.value.transaction_date = isoDateStringForForm
   }
   // 2. Trigger the save logic (blur/save)
   handleSaveAndExit(); 
@@ -237,6 +264,8 @@ function formatAmount(amount: string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'decimal',     // currency if want $ sign before
     currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(num);
 }
 
@@ -291,9 +320,8 @@ function updateNote(newNote: string) {
         <SuggestionInput
           ref="categoryInputRef"
           v-model="transaction.category"
-          :options="categoryOptions"
+          :options="categories"
           placeholder="Category"
-          
           class="w-full box-border" 
           @blur="handleSaveAndExit"
           @keydown.enter="handleSaveAndExit"
@@ -315,9 +343,8 @@ function updateNote(newNote: string) {
         <SuggestionInput
           ref="vendorInputRef"
           v-model="transaction.vendor"
-          :options="vendorOptions"
+          :options="currentVendorOptions || []"
           placeholder="Vendor"
-          
           class="w-full" 
           @blur="handleSaveAndExit"
           @keydown.enter="handleSaveAndExit"
@@ -353,14 +380,14 @@ function updateNote(newNote: string) {
         v-else 
         class="w-full h-full flex items-center justify-center border-b border-transparent hover:bg-gray-100 hover:border-gray-400 box-border transition-colors">
         <span class="text-gray-900 font-light">
-          {{ formatAmount(transaction.amount) }}
+          {{ formatAmount(transaction.amount?.toString() || '') }}
         </span>
       </div>
     </div>
 
     <div>
       <NotesIcon 
-        :note-text="transaction.note"
+        :note-text="transaction.note || ''"
         @update-note="updateNote"
       />
     </div>

@@ -1,6 +1,6 @@
 export interface TransactionDto {
     id: string
-    transaction_date: Date
+    transaction_date: string
     type: 'income' | 'expense'
     amount?: number
     category?: string
