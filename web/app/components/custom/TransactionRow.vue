@@ -185,7 +185,7 @@ function formatAmount(amount: string): string {
   const num = parseFloat(amount);
   if (isNaN(num)) return amount;
   return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+    style: 'decimal',     // currency if want $ sign before
     currency: 'USD',
   }).format(num);
 }
@@ -360,87 +360,61 @@ const formattedDisplayDate = computed(() => {
 //   isCalendarOpen.value = false;
 //   handleSaveAndExit(); 
 // }
+
+/**
+ * ⭐ NEW: Input sanitizer
+ * Prevents non-numeric characters from being typed or pasted.
+ */
+function handleAmountInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  // Regex: Keep only digits and a single decimal point
+  let value = input.value.replace(/[^0-9.]/g, '');
+  
+  // Ensure only one decimal point exists
+  const parts = value.split('.');
+  if (parts.length > 2) {
+    value = parts[0] + '.' + parts.slice(1).join('');
+  }
+  
+  // Update the transaction state
+  transaction.value.amount = value;
+}
 </script>
 
 
 <template>
-  <div class="transaction-row flex flex-nowrap items-center justify-between gap-0 p-1 border-b border-gray-200 hover:bg-gray-50 h-10 my-4 bg-red-100 w-full">
+  <div class="transaction-row flex flex-nowrap items-center justify-between gap-0 p-1 border-b border-gray-200 hover:bg-gray-50 h-10 my-4 w-full">
     
 
     <div 
-      class="w-[20%] min-w-[4.65rem] py-0 h-10 relative flex items-center"
+      class="w-[20%] min-w-[4.65rem] py-0 h-10 relative flex items-center box-border"
       @click="enterEditMode('date')"
       >
-      <div class="w-full h-full flex items-center hover:bg-gray-100 hover:border-b hover:border-gray-400">
-        <!-- <div v-if="editingField === 'date'" class="w-full h-full flex items-center bg-blue-200"> -->
-            <Popover v-model:open="isCalendarOpen">
-              <PopoverTrigger as-child>
-                <Button variant="ghost" class="h-10 min-w-[4.65rem] justify-between font-normal rounded-none px-2 cursor-pointer">
-                  <!-- <CalendarIcon class="size-4 text-gray-500 hover:text-gray-700" /> -->
-                  {{ formattedDisplayDate }}
-                  
-                </Button>
-              </PopoverTrigger>
-              
-              <PopoverContent class="w-auto p-0" align="start">
-                <Calendar
-                  class="[&_svg]:hidden"
-                  :model-value="calendarValue"
-                  :min-value="monthStart"
-                  :max-value="monthEnd"
-                  @update:model-value="handleDateUpdate"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <!-- <div v-else class="text-base font-medium text-gray-600">
-            {{ formattedDisplayDate }}
-          </div> -->
-    </div>
-
-    <!-- <div 
-      class="w-[20%] min-w-[6rem] cursor-pointer py-0 h-10 px-3 relative"
-      @click="enterEditMode('date')"
-    >
-      <div v-if="editingField === 'date'" class="w-full h-full flex items-center">
-        
+      <div class="w-full h-full flex items-center border-b border-transparent hover:bg-gray-100 hover:border-b hover:border-gray-400 box-border">
         <Popover v-model:open="isCalendarOpen">
-            
-          <Input
-            id="date-input"
-            ref="dateInputRef"
-            v-model="transaction.date"
-            placeholder="e.g., Today or 1/15/2026"
-            class="bg-background pr-10 h-8 border-b border-blue-500 focus-visible:ring-0"
-            @blur="handleSaveAndExit"
-            @keydown.enter="handleSaveAndExit"
-          />
-
           <PopoverTrigger as-child>
-            <Button
-              id="date-picker"
-              variant="ghost"
-              class="absolute top-1/2 right-2 size-6 -translate-y-1/2"
-              @mousedown.prevent >
-              <CalendarIcon class="size-4 text-gray-500 hover:text-gray-700" />
+            <Button variant="ghost" class="h-10 min-w-[4.65rem] justify-between font-normal rounded-none px-2 cursor-pointer box-border">
+              <!-- <CalendarIcon class="size-4 text-gray-500 hover:text-gray-700" /> -->
+              {{ formattedDisplayDate }}
+              
             </Button>
           </PopoverTrigger>
-
-          <PopoverContent class="w-auto overflow-hidden p-0" align="start">
+          
+          <PopoverContent class="w-auto p-0" align="start">
             <Calendar
-              :model-value="calendarValue" @update:model-value="handleCalendarUpdate" />
+              class="[&_svg]:hidden"
+              :model-value="calendarValue"
+              :min-value="monthStart"
+              :max-value="monthEnd"
+              @update:model-value="handleDateUpdate"
+            />
           </PopoverContent>
         </Popover>
       </div>
-
-      <div v-else class="display-value w-full text-base font-medium text-gray-600 py-2">
-        {{ formatDate(new Date(transaction.date)) || 'Date' }}
-      </div>
-    </div> -->
+    </div>
 
     <div 
-      class="w-[80%] min-w-[8rem] cursor-pointer py-0 h-10"
+      class="w-[80%] min-w-[8rem] cursor-pointer py-0 h-10 box-border"
       @click="enterEditMode('category')"
     >
       <div v-if="editingField === 'category'" class="w-full">
@@ -450,18 +424,21 @@ const formattedDisplayDate = computed(() => {
           :options="categoryOptions"
           placeholder="Category"
           
-          class="w-full" 
+          class="w-full box-border" 
           @blur="handleSaveAndExit"
           @keydown.enter="handleSaveAndExit"
         />
       </div>
-      <div v-else class="display-value w-full text-base font-medium text-gray-800 py-2 px-3 hover:bg-gray-100 hover:border-b hover:border-gray-400">
+      <div
+        v-else class="display-value w-full py-2 px-3 text-left box-border h-10
+        text-base font-medium text-gray-500  
+        hover:bg-gray-100 hover:border-b hover:border-gray-400">
         {{ transaction.category || 'Category' }}
       </div>
     </div>
 
     <div 
-      class="w-[80%] min-w-[8rem] cursor-pointer py-0 h-10"
+      class="w-[80%] min-w-[8rem] cursor-pointer py-0 h-10 box-border"
       @click="enterEditMode('vendor')"
     >
       <div v-if="editingField === 'vendor'" class="w-full">
@@ -476,31 +453,38 @@ const formattedDisplayDate = computed(() => {
           @keydown.enter="handleSaveAndExit"
         />
       </div>
-      <div v-else class="display-value w-full text-base font-medium text-gray-800 py-2 px-3 hover:bg-gray-100 hover:border-b hover:border-gray-400">
+      <div
+        v-else class="display-value w-full py-2 px-3 text-left box-border h-10
+        text-base font-medium text-gray-500  
+        hover:bg-gray-100 hover:border-b hover:border-gray-400">
         {{ transaction.vendor || 'Vendor' }}
       </div>
     </div>
 
     <div 
-      class="w-[20%] min-w-[5rem] cursor-pointer py-2 text-right "
+      class="w-[20%] min-w-[5rem] cursor-pointer h-10 box-border"
       @click="enterEditMode('amount')"
     >
-      <div v-if="editingField === 'amount'" class="w-ful text-gray-900 font-light border-b hover:border-gray-200">
+      <div v-if="editingField === 'amount'" class="w-full h-full flex items-center border-b border-gray-400 bg-gray-50 box-border">
         <input
           ref="amountInputRef"
           v-model="transaction.amount"
           placeholder="0.00"
-          class="w-full text-center focus:outline-none border-b border-gray-400 py-2"
-          inputmode="decimal" 
-          type="text"
-                  pattern="[0-9]*[.,]?[0-9]*"
-        @blur="handleSaveAndExit"
-        @keydown.enter="handleSaveAndExit"
-
+          class="w-full h-full text-center focus:outline-none bg-transparent p-0 box-border"
+          inputmode="decimal"
+          type="text" 
+          @input="handleAmountInput"
+          @blur="handleSaveAndExit"
+          @keydown.enter="handleSaveAndExit"
         >
       </div>
-      <div v-else class="display-value text-gray-900 font-light text-center py-2 hover:bg-gray-100 hover:border-b hover:border-gray-400">
-        {{ formatAmount(transaction.amount) || '0.00' }}
+
+      <div 
+        v-else 
+        class="w-full h-full flex items-center justify-center border-b border-transparent hover:bg-gray-100 hover:border-gray-400 box-border transition-colors">
+        <span class="text-gray-900 font-light">
+          {{ formatAmount(transaction.amount) }}
+        </span>
       </div>
     </div>
 

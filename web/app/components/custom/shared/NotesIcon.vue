@@ -139,16 +139,6 @@ watch(() => props.noteText, (newVal) => {
       <DialogContent class="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Transaction Note</DialogTitle>
-          <!-- <DialogClose as-child>
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                class="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
-                @click="closeDialog"
-            >
-                <X class="h-4 w-4" />
-            </Button>
-          </DialogClose> -->
         </DialogHeader>
         
         <div class="grid gap-4 py-4">

@@ -120,7 +120,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="relative w-full max-w-[450px]">
+  <div class="relative w-full max-w-[450px] box-border">
     <div class="relative">
       <input
         ref="inputRef"
@@ -128,7 +128,7 @@ defineExpose({
         v-model="inputDisplay"
         type="text"
         :placeholder="props.placeholder"
-        class="w-full h-10 px-3 py-5 text-md focus:outline-none"
+        class="w-full h-10 px-3 py-5 text-md focus:outline-none box-border"
         @focus="isFocused = true; moveCursorToEnd();"
         @blur="handleBlur"
         @click="moveCursorToEnd"
@@ -137,7 +137,7 @@ defineExpose({
       <button
           v-if="inputDisplay.length > 0"
           type="button"
-          class="absolute inset-y-0 right-0 flex items-center justify-center 
+          class="absolute inset-y-0 right-0 flex items-center justify-center box-border
                 w-10 h-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer" 
           
           @click.prevent="clearInput"
@@ -148,17 +148,17 @@ defineExpose({
     
     <div 
       v-if="isFocused"
-      class="absolute z-50 top-full mt-0 w-full max-h-[300px] overflow-y-auto 
-            bg-white border border-gray-300 rounded-sm shadow-lg"
+      class="absolute z-50 top-full mt-[4px] w-full max-h-[300px] overflow-y-auto 
+            bg-white border border-gray-300 rounded-sm shadow-lg box-border"
     >
-      <div v-if="filteredOptions.length === 0" class="p-2 text-sm text-gray-500">
+      <div v-if="filteredOptions.length === 0" class="p-2 text-sm text-gray-500 box-border">
         No results found.
       </div>
       
       <button
         v-for="suggestion in filteredOptions"
         :key="suggestion" type="button"
-        class="flex w-full items-center justify-between p-2 text-sm cursor-pointer 
+        class="flex w-full items-center justify-between p-2 text-sm cursor-pointer box-border
               hover:bg-gray-100 transition-colors duration-150 text-left"
         @click="selectDropdownOption(suggestion)" >
         <span>{{ suggestion }}</span> </button>
