@@ -3,14 +3,14 @@ import { defineStore } from 'pinia'
 // import { toast } from 'vue-sonner'
 // import type { ToastPayload } from '~/types/app.types';
 
-interface SuggestionState {
+interface TransactionState {
   transactions: TransactionDto[],
   categorySuggestions: string[],
   vendorSuggestions: Record<string, string[]>,
 }
 
 export const useTransactionStore = defineStore('transaction', {
-state: (): SuggestionState => ({
+state: (): TransactionState => ({
   transactions: [
       { id: '1', type: 'expense', transaction_date: new Date().toISOString(), category: 'Food', vendor: 'Taco Bell', amount: 12.5, note: '' },
       { id: '2', type: 'expense', transaction_date: new Date().toISOString(), category: 'Bills', vendor: 'Verizon', amount: 85.00, note: 'Monthly' }

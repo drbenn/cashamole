@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Shield, Smartphone, TrendingUp } from 'lucide-vue-next'
-import { useUserStore } from '~/stores/userStore';
+// import { useUserStore } from '~/stores/userStore';
 // import { useAppStore } from '~/stores/appStore';
 import TransactionRow from '@/components/custom/TransactionRow.vue'
 import { useTransactionStore } from '@/stores/transactionStore'
 
 // const appStore = useAppStore();
-const userStore = useUserStore();
+// const userStore = useUserStore();
 const store = useTransactionStore()
 
 const { 
@@ -26,10 +26,10 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
-    <div v-if="userStore.isLoggedIn">
+    <!-- <div v-if="userStore.isLoggedIn">
       Welcome back, {{ userStore.displayName }}!
       <button @click="userStore.logout">Logout</button>
-    </div>
+    </div> -->
     <!-- <div v-else>
       <button @click="userStore.login({ email: 'test@example.com' })">Login</button>
     </div> -->
@@ -38,6 +38,7 @@ onMounted(() => {
     <!-- Hero Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
       <div class="text-center max-w-2xl mx-auto">
+        
         <h1 class="text-5xl sm:text-6xl font-bold text-gray-900 mb-6">
           Take Control of Your Money
         </h1>

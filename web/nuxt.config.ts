@@ -49,6 +49,9 @@ export default defineNuxtConfig({
     host: 'localhost', // Optional: '0.0.0.0' to allow external access
   },
   routeRules: {
+    '/': { prerender: true },
+    // '/about': { prerender: true },
+    // '/blog/**': { prerender: true },
     // This tells Nuxt: "Do not attempt to prerender these routes during build."
     // They will only run in the client's browser after loading.
     '/dashboard/**': { ssr: false },
