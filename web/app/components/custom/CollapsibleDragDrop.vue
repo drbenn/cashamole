@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { GripVertical, ChevronDown, Plus } from 'lucide-vue-next'
+import { GripVertical, ChevronDown } from 'lucide-vue-next'
 
 interface Transaction {
   id: string
@@ -39,8 +39,10 @@ const onCategoryReorder = () => {
   console.log('Save Category Order to API:', newOrder)
 }
 
-const onTransactionMove = (e: any) => {
+const onTransactionMove = (e: Event) => {
   console.log('Transaction moved!')
+  console.log(e);
+  
   // In a real app, you'd send the new state of categories.value to your DB
 }
 </script>

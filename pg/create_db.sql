@@ -9,28 +9,28 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS user_login_history (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  login_at TIMESTAMP DEFAULT NOW(),
-  ip_address INET NOT NULL,
-  type VARCHAR(20)
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    login_at TIMESTAMP DEFAULT NOW(),
+    ip_address INET NOT NULL,
+    type VARCHAR(20)
 );
 
 CREATE TABLE IF NOT EXISTS  user_refresh_tokens (
-  jti VARCHAR(55) PRIMARY KEY,  -- jwt id to actually reference the token for security APPPARENTLY
-  token_hash VARCHAR(255), -- Store the hash of the token, not the token itself, for security
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    jti VARCHAR(55) PRIMARY KEY,  -- jwt id to actually reference the token for security APPPARENTLY
+    token_hash VARCHAR(255), -- Store the hash of the token, not the token itself, for security
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE email_confirmations (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  code VARCHAR(6) NOT NULL UNIQUE,
-  expires_at TIMESTAMP NOT NULL,
-  used_at TIMESTAMP NULL,
-  created_at TIMESTAMP DEFAULT NOW()
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE password_reset_email_confirmations (
@@ -41,6 +41,20 @@ CREATE TABLE password_reset_email_confirmations (
     expires_at TIMESTAMP NOT NULL,
     used_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE "categories" (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(50) NOT NULL,
+    usage_type VARCHAR(20) NOT NULL CHECK (usage_type IN ('transaction', 'asset', 'liability')), 
+    sort_order INT NOT NULL DEFAULT 0,
+    is_system BOOLEAN DEFAULT FALSE,        -- Guard for the "Uncategorized" category
+    active BOOLEAN DEFAULT TRUE,
+
+    -- Auditing
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE transactions (
@@ -115,20 +129,6 @@ CREATE TABLE "snapshot_liabilities" (
     liability_interest_rate NUMERIC(6,4),
     liability_total_loan_value NUMERIC(11,2),
     
-    -- Auditing
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE "categories" (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(50) NOT NULL,
-    usage_type VARCHAR(20) NOT NULL CHECK (usage_type IN ('transaction', 'asset', 'liability')), 
-    sort_order INT NOT NULL DEFAULT 0,
-    is_system BOOLEAN DEFAULT FALSE,        -- Guard for the "Uncategorized" category
-    active BOOLEAN DEFAULT TRUE,
-
     -- Auditing
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

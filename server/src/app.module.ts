@@ -81,7 +81,6 @@ import { CategoryModule } from './category/category.module';
     DatabaseModule,
     TransactionModule,
     SnapshotModule,
-    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
