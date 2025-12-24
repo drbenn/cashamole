@@ -1,5 +1,9 @@
 export type CategoryUsageType = 'transaction' | 'asset' | 'liability';
-
+export enum CategoryUsageEnum {
+  TRANSACTION = 'transaction',
+  ASSET = 'asset',
+  LIABILITY = 'liability'
+}
 export interface CategoryDto {
     id?: string
     user_id?: string
@@ -31,4 +35,15 @@ export interface UpdateCategoryDto {
  */
 export interface ReorderCategoriesDto {
   categoryIds: string[]; // Ordered list of UUIDs
+}
+
+export interface DeactivateCategoryDto {
+  category_id: string
+  usage_type: CategoryUsageType 
+}
+
+export interface SetCategoriesDto {
+  transaction: CategoryDto[]
+  asset: CategoryDto[]
+  liability: CategoryDto[]
 }

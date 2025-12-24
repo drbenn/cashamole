@@ -1,7 +1,9 @@
-import type { User } from '@common-types';
+import type { UserLoginData } from '@common-types';
 import { defineStore } from 'pinia'
 import { useAuthService } from '~/services/useAuthService'
 import type { ApiResponse } from '~/types/app.types';
+import { useCategoryStore } from '~/stores/categoryStore'
+
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -21,7 +23,8 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    setUserData(user: User) {
+    setUserData(userLogin: UserLoginData) {
+      const { user, categories } = userLogin
       const { id, email, created_at, updated_at, profiles, providers, settings } = user
       this.id = id
       this.email = email
@@ -30,10 +33,10 @@ export const useUserStore = defineStore('user', {
       this.profiles = profiles
       this.providers = providers
       this.settings = settings
-
       this.isLoggedIn = true
-
-      console.log('user stroe is logged inL: ', this.isLoggedIn);
+      const { setUserCategories } = useCategoryStore()
+      setUserCategories(categories)
+      console.log('user stroe is logged in: ', this.isLoggedIn);
       
     },
     // async login(credentials: any) {

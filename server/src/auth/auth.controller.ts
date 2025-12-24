@@ -56,6 +56,7 @@ export class AuthController {
   
     return { 
       user: data.user,
+      categories: data.categories,
       message: 'Session restored'
     };
   };

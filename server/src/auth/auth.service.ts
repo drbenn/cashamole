@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AuthQueryService } from './auth-query.service';
-import { CreateUserDto, JwtPayload, LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto, ResetPasswordDto, VerifyRegistrationDto } from '@common-types';
+import { CategoryDto, CategoryUsageEnum, CreateUserDto, JwtPayload, LoginUserDto, RequestNewVerificationDto, RequestPasswordResetDto, ResetPasswordDto, SetCategoriesDto, VerifyRegistrationDto } from '@common-types';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
@@ -280,15 +280,29 @@ export class AuthService {
     // 6. remove providers email hashed password from response
     delete user.providers.email.password
 
-    // 7. log successful login
+    // 7. fetch active categories for user
+    const userCategories: SetCategoriesDto = await this.getLoginUserCategories(user.id)
+
+    // 8. log successful login
     await this.authQueryService.insertUserLoginHistory(user.id, ipAddress,'web')
 
     return {
       message: 'Login Success',
       user: user,
+      categories: userCategories,
       jwtAccessToken: jwtAccessToken,
       jwtRefreshToken: jwtRefreshToken,
     }
+  }
+
+  async getLoginUserCategories(userId: string): Promise<SetCategoriesDto> {
+    const categoryArray: CategoryDto[] = await this.categoryService.getUserCategories(userId)
+    const setCategoriesDto: SetCategoriesDto = {
+      transaction: categoryArray.filter((cat: CategoryDto) => cat.usage_type === CategoryUsageEnum.TRANSACTION) || [],
+      asset: categoryArray.filter((cat: CategoryDto) => cat.usage_type === CategoryUsageEnum.ASSET) || [],
+      liability: categoryArray.filter((cat: CategoryDto) => cat.usage_type === CategoryUsageEnum.LIABILITY) || []
+    }
+    return setCategoriesDto
   }
 
   // async loginCachedUser(refresh_token: string, ipAddress: string): Promise<any> {
@@ -387,9 +401,13 @@ export class AuthService {
     // Clean up the user object before returning
     delete user.providers.email.password;
 
+    // 7. fetch active categories for user
+    const userCategories: SetCategoriesDto = await this.getLoginUserCategories(user.id)
+
     return {
       message: 'Cached Login Success',
       user: user,
+      categories: userCategories,
       jwtAccessToken: newTokens.accessToken,
       jwtRefreshToken: newTokens.refreshToken
     };

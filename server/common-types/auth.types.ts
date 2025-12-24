@@ -1,3 +1,5 @@
+import { SetCategoriesDto } from "./category.types";
+
 export interface CreateUserDto {
   email: string,
   provider: 'email',
@@ -48,6 +50,11 @@ export interface User {
   profiles: any,
   providers: any,
   settings: any
+}
+
+export interface UserLoginData {
+  user: User
+  categories: SetCategoriesDto
 }
 
 

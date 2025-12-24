@@ -133,42 +133,62 @@ export class CategoryQueryService {
     }
   }
 
-  async migrateAndDeactivate(categoryId: string, fallbackId: string, userId: string): Promise<void> {
-    const client = await this.pgPool.connect()
+  async migrateAndDeactivate(
+    categoryId: string, 
+    usageType: 'transaction' | 'asset' | 'liability', 
+    userId: string
+  ): Promise<void> {
+    const client = await this.pgPool.connect();
+
     try {
-      await client.query('BEGIN')
+      await client.query('BEGIN');
 
-      // 1. Move Transactions
-      await client.query(
-        `UPDATE transactions SET category_id = $1 WHERE category_id = $2 AND user_id = $3;`,
-        [fallbackId, categoryId, userId]
-      )
+      // 1. Identify the table based on usageType
+      const tableMap = {
+        transaction: 'transactions',
+        asset: 'snapshot_assets',
+        liability: 'snapshot_liabilities'
+      };
+      const targetTable = tableMap[usageType];
 
-      // 2. Move Assets
-      await client.query(
-        `UPDATE snapshot_assets SET category_id = $1 WHERE category_id = $2;`,
-        [fallbackId, categoryId]
-      )
+      // 2. Find the "Uncategorized" ID for this specific user and type
+      const fallbackQuery = `
+        SELECT id FROM categories 
+        WHERE user_id = $1 
+          AND usage_type = $2 
+          AND name = 'Uncategorized' 
+          AND active = TRUE 
+        LIMIT 1;
+      `;
+      const fallbackRes = await client.query(fallbackQuery, [userId, usageType]);
+      const fallbackId = fallbackRes.rows[0]?.id;
 
-      // 3. Move Liabilities
-      await client.query(
-        `UPDATE snapshot_liabilities SET category_id = $1 WHERE category_id = $2;`,
-        [fallbackId, categoryId]
-      )
+      if (!fallbackId) {
+        throw new Error(`Critical Error: No "Uncategorized" fallback found for ${usageType}`);
+      }
 
-      // 4. Deactivate the category
-      await client.query(
-        `UPDATE categories SET active = false, updated_at = NOW() WHERE id = $1 AND user_id = $2;`,
-        [categoryId, userId]
-      )
+      // 3. Migrate all records to the fallback category
+      const migrateSql = `
+        UPDATE ${targetTable}
+        SET category_id = $1, updated_at = NOW()
+        WHERE category_id = $2 AND user_id = $3;
+      `;
+      await client.query(migrateSql, [fallbackId, categoryId, userId]);
 
-      await client.query('COMMIT')
+      // 4. Deactivate the old category
+      const deactivateSql = `
+        UPDATE categories 
+        SET active = FALSE, updated_at = NOW() 
+        WHERE id = $1 AND user_id = $2;
+      `;
+      await client.query(deactivateSql, [categoryId, userId]);
+
+      await client.query('COMMIT');
     } catch (error) {
-      await client.query('ROLLBACK')
-      this.logger.error(`Error: categories-query-service migrateAndDeactivate: ${error}`)
-      throw new Error('Error: categories-query-service migrateAndDeactivate')
+      await client.query('ROLLBACK');
+      throw error;
     } finally {
-      client.release()
+      client.release();
     }
   }
 
@@ -182,7 +202,7 @@ export class CategoryQueryService {
 
     try {
       const result = await this.pgPool.query(queryText, values)
-      return result.rows
+      return result.rows.map(({ user_id, ...category}) => category)
     } catch (error) {
       this.logger.error(`Error: categories-query-service getUserCategories: ${error}`)
       throw new Error('Error: categories-query-service getUserCategories')

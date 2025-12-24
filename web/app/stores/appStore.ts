@@ -1,6 +1,9 @@
+import type { CreateCategoryDto } from '@common-types';
 import { defineStore } from 'pinia'
 import { toast } from 'vue-sonner'
 import type { ToastPayload } from '~/types/app.types';
+import { useCategoryService } from '~/services/useCategoryService'
+
 
 export const useAppStore = defineStore('app', {
 state: () => ({
@@ -12,6 +15,34 @@ state: () => ({
   // No getters needed for the toast system
 
   actions: {
+    async createCategory(dto: CreateCategoryDto) {
+      const { createCategory } = useCategoryService()
+      const result = await createCategory(dto)
+      console.log('store restu: ', result);
+      if (result.success) {
+        this.handleSuccessToast(`${result.data.usage_type} category ${result.data.name} created`)
+        // TODO: update categories with newly saved category
+      } else {
+        console.error(result)
+        this.handleErrorToast(result.error)
+      }
+    },
+    handleErrorToast(message: string) {
+      this.showToast({
+        message: message,
+        position: 'top-right',
+        duration: 5000,
+        type: 'error'
+      })
+    },
+    handleSuccessToast(message: string) {
+      this.showToast({
+        message: message,
+        position: 'top-right',
+        duration: 3000,
+        type: 'success'
+      })
+    },
     /**
      * Triggers a global toast notification.
      * This is now explicitly defined as an action.

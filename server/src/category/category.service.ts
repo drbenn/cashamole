@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { CategoryQueryService } from './category-query.service'
-import { CreateCategoryDto, CategoryDto, ReorderCategoriesDto, UpdateCategoryDto, CategoryUsageType } from '@common-types'
+import { CreateCategoryDto, CategoryDto, ReorderCategoriesDto, UpdateCategoryDto, CategoryUsageType, DeactivateCategoryDto } from '@common-types'
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -95,29 +95,32 @@ export class CategoryService {
     return updated
   }
 
-  async deactivateCategory(dto: { category_id: string, fallback_category_id: string }, userId: string): Promise<{ success: boolean }> {
-    const methodName = CategoryService.name + '.deactivateCategory'
-    this.logger.log(`Attempting to deactivate category ${dto.category_id}. Fallback: ${dto.fallback_category_id}`, methodName)
+  async deactivateCategory(dto: DeactivateCategoryDto, userId: string): Promise<{ success: boolean }> {
+      const { category_id, usage_type } = dto;
+      const methodName = CategoryService.name + '.deactivateCategory';
+      
+      this.logger.log(`Attempting to deactivate ${usage_type} category: ${category_id}`, methodName);
 
-    // 1. Guard: Check if it's a system category
-    const category = await this.queryService.getCategoryById(dto.category_id, userId)
-    if (category?.is_system) {
-      this.logger.warn(`Deactivation failed: Category ${dto.category_id} is a system requirement`, methodName)
-      throw new ConflictException('This is a system category and cannot be deactivated.')
+      // 1. Fetch the category to check its status/name
+      const category = await this.queryService.getCategoryById(category_id, userId);
+      
+      if (!category) {
+        throw new NotFoundException('Category not found.');
+      }
+
+      // 2. Guard: Cannot deactivate the "Uncategorized" safety net
+      // We check name or a 'is_system' flag if you have one.
+      if (category.name.toLowerCase() === 'uncategorized') {
+        this.logger.warn(`User ${userId} attempted to deactivate the system fallback category.`, methodName);
+        throw new ConflictException('The "Uncategorized" category is a system requirement and cannot be deactivated.');
+      }
+
+      // 3. Hand off to the Query Service to find the fallback and migrate
+      await this.queryService.migrateAndDeactivate(category_id, usage_type, userId);
+      
+      this.logger.log(`Successfully migrated and deactivated category ${category_id}`, methodName);
+      return { success: true };
     }
-
-    // 2. Logic Check: Ensure usage types match (can't move Asset items to a Transaction category)
-    const fallback = await this.queryService.getCategoryById(dto.fallback_category_id, userId)
-    if (category && category.usage_type !== fallback?.usage_type) {
-      this.logger.warn(`Deactivation failed: Usage type mismatch between ${category.usage_type} and ${fallback?.usage_type}`, methodName)
-      throw new ConflictException('The fallback category must be of the same type (e.g., Asset to Asset).')
-    }
-
-    await this.queryService.migrateAndDeactivate(dto.category_id, dto.fallback_category_id, userId)
-    
-    this.logger.log(`Successfully deactivated category ${dto.category_id} and migrated items to ${dto.fallback_category_id}`, methodName)
-    return { success: true }
-  }
 
   async reorderCategories(dto: ReorderCategoriesDto, userId: string): Promise<{ success: boolean }> {
     const methodName = CategoryService.name + '.reorderCategories'
