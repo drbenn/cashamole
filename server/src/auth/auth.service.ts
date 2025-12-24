@@ -9,6 +9,7 @@ import { EmailService } from 'src/email/email.service';
 import  type { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
+import { CategoryService } from 'src/category/category.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     private emailService: EmailService,
     private readonly configService: ConfigService,
+    private categoryService: CategoryService
   ) {}
 
 
@@ -103,6 +105,9 @@ export class AuthService {
     if (dto.password) dto.password = await this.hashString(dto.password)
 
     const accountCreated = await this.authQueryService.insertUser(dto)
+
+    // seed system fallback non-modifiable categories e.g. "Uncategorized" category for transactions, assets and liabilies
+    await this.categoryService.seedSystemCategories(accountCreated.id)
     
     await this.sendAccountVerificationEmail(accountCreated.id, accountCreated.email)
     

@@ -80,4 +80,35 @@ export class SnapshotController {
     // 2. Call the service
     return await this.snapshotService.updateSnapshotDate(snapshotId, userId, newDate);
   }
+
+
+// The "SQL Monster" is the name we gave to that massive, single query designed to fetch your entire Financial Dashboard in one shot.
+
+// Instead of making 10 separate API calls (one for categories, one for transactions, one for assets, etc.), this query pulls everything, nests it into JSON, and hands it to Nuxt so your page loads instantly with all the data it needs.
+// Where does it live?
+
+// It should live in the SnapshotQueryService (or a dedicated DashboardQueryService), and the endpoint should be in the SnapshotController.
+
+// Why there? Because your dashboard is essentially a "view" of your current financial state, which is defined by your categories and your latest snapshot.
+// What does it actually do?
+
+// It builds a tree structure. Here is the mental map of what that SQL returns:
+
+//     Categories: It starts with all the categories you've created.
+
+//     Transactions: It nests every transaction belonging to that category.
+
+//     Latest Snapshot Items: It looks at your most recent active snapshot and nests the Assets and Liabilities into their respective categories.
+
+//     Totals: It calculates the "Category Total" (e.g., how much total Cash you have across all accounts) right there in the database.
+  @Get('dashboard/summary')
+  async getDashboardSummary(
+    @Req() req: { user: CommonTypes.UserJwtGuardPayload },
+  ): Promise<any> {
+    const userId = req.user.userId;
+    this.logger.log(`Fetching full dashboard summary for user ${userId}`, SnapshotController.name);
+    
+    // This calls the "Monster" query
+    return await this.snapshotService.getDashboardSummary(userId);
+  }
 }

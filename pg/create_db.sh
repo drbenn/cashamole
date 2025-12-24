@@ -61,8 +61,9 @@ CREATE TABLE \"password_reset_email_confirmations\" (
 CREATE TABLE \"transactions\" (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category_id UUID REFERENCES categories(id), -- Linked to a 'transaction' category
     transaction_date TIMESTAMP NOT NULL,
-    type VARCHAR(20) NOT NULL,
+    type VARCHAR(20) NOT NULL, -- 'income' or 'expense'
     amount NUMERIC(11,2),
     category VARCHAR(30),
     vendor VARCHAR(30),
@@ -127,6 +128,17 @@ CREATE TABLE \"snapshot_liabilities\" (
     -- Auditing
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS \"categories\" (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(50) NOT NULL,
+    -- Tells us if this group is for Expenses, Assets, or Debts
+    usage_type VARCHAR(20) NOT NULL CHECK (usage_type IN ('transaction', 'asset', 'liability')), 
+    sort_order INT NOT NULL DEFAULT 0,
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_snapshot_liabilities_snapshot_id ON snapshot_liabilities (snapshot_id);

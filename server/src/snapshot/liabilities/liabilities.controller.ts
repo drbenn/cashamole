@@ -57,9 +57,10 @@ export class SnapshotLiabilityController {
     }
     
     // Defensive check against unauthorized field updates
-    const forbiddenFields = ['id', 'user_id', 'created_at', 'category'];
+    const forbiddenFields = ['id', 'user_id', 'created_at', 'snapshot_id', 'entity_type'];
     if (forbiddenFields.includes(dto.field as string)) {
-        throw new BadRequestException(`Updating the field "${dto.field}" is not allowed.`);
+      this.logger.warn(`Security Block: User ${req.user.userId} tried to modify restricted field: ${dto.field}`);
+      throw new BadRequestException(`The field "${dto.field}" cannot be modified.`);
     }
 
     this.logger.log(`Request to update liability ID ${liabilityId} field ${dto.field}`, SnapshotLiabilityController.name);

@@ -14,14 +14,15 @@ export class TransactionQueryService {
 
   async insertTransaction(dto: ServiceTransactionDto): Promise<TransactionDto> {
     const queryText = `
-      INSERT INTO "transactions" (id, user_id, transaction_date, type, created_at, updated_at, active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO "transactions" (id, user_id, category_id, transaction_date, type, created_at, updated_at, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *;
     `;
 
     const values = [
       dto.id,
       dto.user_id,
+      dto.category_id,
       dto.transaction_date,
       dto.type,
       dto.created_at,
@@ -34,7 +35,8 @@ export class TransactionQueryService {
       const transaction: ServiceTransactionDto = result.rows[0]
       return transaction
     } catch (error) {
-      this.logger.log('warn', `Error: transaction-query-service insertTransaction: ${error}`);
+      const methodName = TransactionQueryService.name + '.insertTransaction'
+      this.logger.log('warn', `Error: ${methodName}: ${error}`);
       throw new Error('Error: transaction-query-service insertTransaction');
     }
   }
@@ -42,7 +44,8 @@ export class TransactionQueryService {
   async getAllUserTransactions(userId: string): Promise<TransactionDto[]> {
     const queryText = `
       SELECT * FROM transactions
-      WHERE user_id = $1 AND active = $2;
+      WHERE user_id = $1 AND active = $2
+      ORDER BY transaction_date DESC, created_at DESC;
     `;
 
     const values = [
@@ -55,7 +58,8 @@ export class TransactionQueryService {
       const transactions: TransactionDto[] = result.rows
       return transactions
     } catch (error) {
-      this.logger.log('warn', `Error: transaction-query-service getAllUsersTransactions: ${error}`);
+      const methodName = TransactionQueryService.name + '.insertTransaction'
+      this.logger.log('warn', `Error: ${methodName}: ${error}`);
       throw new Error('Error: transaction-query-service getAllUsersTransactions');
     }
   }
@@ -84,7 +88,8 @@ export class TransactionQueryService {
       }
       return updatedTransaction
     } catch (error) {
-      this.logger.log('warn', `Error: transaction-query-service updateTransactionField: ${error}`);
+      const methodName = TransactionQueryService.name + '.insertTransaction'
+      this.logger.log('warn', `Error: ${methodName}: ${error}`);
       throw new Error('Error: transaction-query-service updateTransactionField');
     }
   }
@@ -112,7 +117,8 @@ export class TransactionQueryService {
       }
       return deactivatedTransaction
     } catch (error) {
-      this.logger.log('warn', `Error: transaction-query-service deactivateTransaction: ${error}`);
+      const methodName = TransactionQueryService.name + '.insertTransaction'
+      this.logger.log('warn', `Error: ${methodName}: ${error}`);
       throw new Error('Error: transaction-query-service deactivateTransaction');
     }
   }

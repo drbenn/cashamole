@@ -1,20 +1,25 @@
 export interface SnapshotLiabilityDto {
   id: string
-  snapshot_id: string               // Foreign Key reference
-  category: 'liablity'
+  user_id?: string,
+  snapshot_id: string       // Foreign Key reference
+  category_id: string;      // UUID of the Category Group
+  entity_type: 'liability'; // Constant
+  
   amount?: number
   party?: string | 'lender' | 'borrower' | 'creditor' | 'debtor' | 'vendor'   // transaction vendor equivalent
-  title?: string                    // e.g. party may be Vanguard - but title would be 'Roth IRA' or 'Brokerage', etc
+  title?: string           // e.g. party may be Vanguard - but title would be 'Roth IRA' or 'Brokerage', etc
   note?: string
-  active?: boolean                  // instead of delete record
-  created_at?: string               // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
-  updated_at?: string               // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
-
+  sort_order: number;      // For UI Drag & Drop
+  active?: boolean         // instead of delete record
+  
   // Liability Specific
   liability_type?: 'short' | 'long'     // long term vs short term maturity
   liability_maturity_date?: Date
   liability_interest_rate?: number
   liability_total_loan_value?: number
+
+  created_at?: string               // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
+  updated_at?: string               // utilize new Date().toIsoString() to keep exact time from client instead of relying on slightly different times due to web/desktop latency
 }
 
 export interface CreateSnapshotLiabilityDto {

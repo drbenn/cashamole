@@ -21,7 +21,7 @@ export class SnapshotQueryService {
     const dateString = snapshot_date.toISOString().split('T')[0];
     
     const sql = `
-      SELECT id, user_id, snapshot_date, created_at
+      SELECT id, user_id, snapshot_date, created_at, active
       FROM snapshot_headers
       WHERE user_id = $1 AND snapshot_date = $2;
     `;
@@ -89,7 +89,7 @@ export class SnapshotQueryService {
   async findSnapshotDetailById(snapshotId: string, userId: string): Promise<SnapshotDetailDto | null> {
     // 1. Get the Header and verify user ownership (Same as before)
     const headerSql = `
-      SELECT id, user_id, snapshot_date, created_at
+      SELECT id, user_id, snapshot_date, created_at, active
       FROM snapshot_header
       WHERE id = $1 AND user_id = $2;
     `;
@@ -156,7 +156,7 @@ export class SnapshotQueryService {
    */
   async deactivateHeader(snapshotId: string, userId: string): Promise<SnapshotHeaderDto | null> {
     const sql = `
-      UPDATE snapshot_header
+      UPDATE snapshot_headers
       SET active = FALSE, updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING id, snapshot_date, created_at, active; 
@@ -178,7 +178,7 @@ export class SnapshotQueryService {
    */
   async updateHeaderDate(snapshotId: string, userId: string, newDateString: string): Promise<SnapshotHeaderDto | null> {
     const sql = `
-      UPDATE snapshot_header
+      UPDATE snapshot_headers
       SET snapshot_date = $3, updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING id, user_id, snapshot_date, created_at, active;
@@ -192,6 +192,64 @@ export class SnapshotQueryService {
       this.logger.error(`DB Error updating date for snapshot ID ${snapshotId}: ${error.message}`, SnapshotQueryService.name);
       // Let the service layer handle the Conflict/Uniqueness exception if PostgreSQL throws one
       throw error; 
+    }
+  }
+
+
+  async getFullDashboardSummary(userId: string): Promise<any[]> {
+    const sql = `
+      WITH latest_snapshot AS (
+          -- Find the ID of the most recent active snapshot for this user
+          SELECT id 
+          FROM snapshot_headers 
+          WHERE user_id = $1 AND active = TRUE 
+          ORDER BY snapshot_date DESC 
+          LIMIT 1
+      )
+      SELECT 
+          c.id AS category_id,
+          c.name AS category_name,
+          c.usage_type, -- 'transaction', 'asset', or 'liability'
+          c.icon,
+          c.color,
+          -- Nest Transactions
+          (SELECT COALESCE(jsonb_agg(t_inner ORDER BY t_inner.transaction_date DESC), '[]')
+          FROM (
+              SELECT id, amount, vendor, transaction_date, note 
+              FROM transactions 
+              WHERE category_id = c.id AND user_id = $1 AND active = TRUE
+          ) t_inner) AS transactions,
+          -- Nest Snapshot Assets
+          (SELECT COALESCE(jsonb_agg(a_inner ORDER BY a_inner.sort_order ASC), '[]')
+          FROM (
+              SELECT sa.id, sa.amount, sa.title, sa.party, sa.asset_valuation 
+              FROM snapshot_assets sa
+              JOIN latest_snapshot ls ON sa.snapshot_id = ls.id
+              WHERE sa.category_id = c.id AND sa.user_id = $1 AND sa.active = TRUE
+          ) a_inner) AS assets,
+          -- Nest Snapshot Liabilities
+          (SELECT COALESCE(jsonb_agg(l_inner ORDER BY l_inner.sort_order ASC), '[]')
+          FROM (
+              SELECT sl.id, sl.amount, sl.title, sl.party, sl.liability_type 
+              FROM snapshot_liabilities sl
+              JOIN latest_snapshot ls ON sl.snapshot_id = ls.id
+              WHERE sl.category_id = c.id AND sl.user_id = $1 AND sl.active = TRUE
+          ) l_inner) AS liabilities,
+          -- Aggregate Totals per Category
+          (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE category_id = c.id AND active = TRUE) as total_transaction_amount,
+          (SELECT COALESCE(SUM(amount), 0) FROM snapshot_assets sa JOIN latest_snapshot ls ON sa.snapshot_id = ls.id WHERE sa.category_id = c.id AND sa.active = TRUE) as total_asset_amount,
+          (SELECT COALESCE(SUM(amount), 0) FROM snapshot_liabilities sl JOIN latest_snapshot ls ON sl.snapshot_id = ls.id WHERE sl.category_id = c.id AND sl.active = TRUE) as total_liability_amount
+      FROM categories c
+      WHERE c.user_id = $1
+      ORDER BY c.usage_type, c.name;
+    `
+    
+    try {
+        const result = await this.pgPool.query(sql, [userId]);
+        return result.rows; 
+    } catch (error) {
+        this.logger.error(`Monster Query Failed: ${error.message}`);
+        throw new Error('Database failed to generate dashboard summary.');
     }
   }
 }

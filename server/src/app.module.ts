@@ -14,6 +14,7 @@ import { EmailModule } from './email/email.module';
 import { DatabaseModule } from './database/database.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { SnapshotModule } from './snapshot/snapshot.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { SnapshotModule } from './snapshot/snapshot.module';
     DatabaseModule,
     TransactionModule,
     SnapshotModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,9 +1,10 @@
 export interface TransactionDto {
     id: string
+    user_id?: string
+    category_id?: string
     transaction_date: string
     type: 'income' | 'expense'
     amount?: number
-    category?: string
     vendor?: string
     note?: string
     active?: boolean          // instead of delete record

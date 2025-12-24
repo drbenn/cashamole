@@ -8,6 +8,7 @@ import { JwtStrategy } from './jwt-guard/jwt.strategy';
 import { AuthQueryService } from './auth-query.service';
 import { DatabaseModule } from 'src/database/database.module';
 import { PassportModule } from '@nestjs/passport';
+import { CategoryModule } from 'src/category/category.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { PassportModule } from '@nestjs/passport';
           }),
     EmailModule,
     DatabaseModule,
-    PassportModule
+    PassportModule,
+    CategoryModule
   ],
   controllers: [AuthController],
   providers: [

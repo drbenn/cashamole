@@ -18,10 +18,17 @@ export class SnapshotLiabilityQueryService {
   // Purpose: Inserts a new, blank liability record.
   // =================================================================
   async createLiability(dto: ServiceCreateSnapshotLiabilityDto): Promise<SnapshotLiabilityDto> {
+    const methodName = SnapshotLiabilityQueryService.name + '.createLiability';
+    // We do NOT pass amount or entity_type. 
+    // amount defaults to 0.00, entity_type defaults to 'liability' via DB schema.
     const sql = `
-      INSERT INTO snapshot_liability 
-        (id, snapshot_id, user_id, category, active)
-      VALUES ($1, $2, $3, 'liability', TRUE)
+      INSERT INTO snapshot_liabilities 
+        (id, snapshot_id, user_id, category_id, sort_order)
+      VALUES (
+        $1, $2, $3,
+        (SELECT id FROM categories WHERE user_id = $3 AND name = 'Uncategorized' AND usage_type = 'liability' LIMIT 1), 
+        (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM snapshot_liabilities WHERE snapshot_id = $2 AND user_id = $3)
+      )
       RETURNING *;
     `;
     
@@ -29,8 +36,13 @@ export class SnapshotLiabilityQueryService {
     const values = [id, dto.snapshot_id, dto.user_id];
     
     // Note: If an error occurs (e.g., FK constraint failure), it will be caught by the service layer.
-    const result = await this.pgPool.query(sql, values);
-    return result.rows[0] as SnapshotLiabilityDto;
+    try {
+      const result = await this.pgPool.query(sql, values);
+      return result.rows[0] as SnapshotLiabilityDto;
+    } catch (error) {
+      this.logger.error(`Error in ${methodName}: ${error.message}`);
+      throw error;
+    }
   }
 
   // =================================================================
@@ -45,22 +57,32 @@ export class SnapshotLiabilityQueryService {
     value: any
   ): Promise<SnapshotLiabilityDto | null> {
     
-    // NOTE: Assume 'snapshot_liability' is the table name
+    // NOTE: Assume 'snapshot_liabilities' is the table name
     // CRITICAL: Use string interpolation for the column name (field) after validation, 
     // but parameterized slots ($1, $2, $3, $4) for all user-provided data (IDs, value).
-    const sql = `
-      UPDATE snapshot_liability
-      SET 
-        "${field}" = $4,
-        updated_at = NOW()
-      WHERE id = $1 
-        AND user_id = $2 
-        AND snapshot_id = $3 
-        AND active = TRUE
-      RETURNING *;
-    `;
+    let sql = ``
+    const values = [value, liabilityId, userId, snapshotId]; 
 
-    const values = [liabilityId, userId, snapshotId, value]; 
+    if (field === 'category_id') {
+      // Security subquery: user can change category, but only to one they own.
+      sql = `
+        UPDATE snapshot_liabilities
+        SET category_id = $1, updated_at = NOW()
+        WHERE id = $2 
+          AND user_id = $3 
+          AND snapshot_id = $4
+          AND EXISTS (SELECT 1 FROM categories WHERE id = $1 AND user_id = $3)
+        RETURNING *;
+      `;
+    } else {
+      // Entity_type is BLOCKED in the controller, so it never hits this dynamic update.
+      sql = `
+        UPDATE snapshot_liabilities
+        SET "${field}" = $1, updated_at = NOW()
+        WHERE id = $2 AND user_id = $3 AND snapshot_id = $4 AND active = TRUE
+        RETURNING *;
+      `;
+    }
 
     try {
         const result = await this.pgPool.query(sql, values);
@@ -77,7 +99,7 @@ export class SnapshotLiabilityQueryService {
   // =================================================================
   async deactivateLiability(liabilityId: string, userId: string): Promise<SnapshotLiabilityDto | null> {
     const sql = `
-      UPDATE snapshot_liability
+      UPDATE snapshot_liabilities
       SET active = FALSE, updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING *; 

@@ -47,11 +47,32 @@ export class SnapshotAssetController {
   ): Promise<SnapshotAssetDto> {
 
     if (!dto.field || typeof dto.value === 'undefined' || !dto.snapshot_id) {
-        throw new BadRequestException('Update payload must include "field", "value", and "snapshot_id".');
+      throw new BadRequestException('Update payload must include "field", "value", and "snapshot_id".');
     }
     
-    // NOTE: Service/Query must handle forbidden fields, but adding a check here is defensive.
+    /**
+     * SECURITY LOCKDOWN
+     * We allow category_id so users can re-organize their assets.
+     * We FORBID changing the core DNA of the record.
+     */
+    const forbiddenFields = [
+      'id', 
+      'user_id', 
+      'snapshot_id', 
+      'entity_type', // An asset stays an asset
+      'created_at'
+    ];
     
+    if (forbiddenFields.includes(dto.field as string)) {
+        this.logger.warn(
+          `Security Alert: User ${req.user.userId} attempted to patch restricted field: ${dto.field}`, 
+          SnapshotAssetController.name
+        );
+        throw new BadRequestException(`Updating the field "${dto.field}" is strictly prohibited.`);
+    }
+
+    this.logger.log(`Updating asset ID ${assetId} field ${dto.field}`, SnapshotAssetController.name);
+
     return await this.snapshotAssetService.updateAsset(
       assetId,
       req.user.userId,
