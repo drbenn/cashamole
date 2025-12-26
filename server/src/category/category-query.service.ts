@@ -209,4 +209,26 @@ export class CategoryQueryService {
     }
   }
 
+  /**
+   * Flips the active switch back to true for a specific category.
+   */
+  async reactivateCategory(categoryId: string, userId: string): Promise<CategoryDto | null> {
+    const sql = `
+      UPDATE categories 
+      SET active = true, 
+          updated_at = NOW() 
+      WHERE id = $1 AND user_id = $2
+      RETURNING *; 
+    `;
+    
+    try {
+      const result = await this.pgPool.query(sql, [categoryId, userId]);
+      // Return the actual updated row, or null if nothing was found to update
+      return result.rows[0] || null;
+    } catch (error) {
+      this.logger.error(`Failed to reactivate category ${categoryId}: ${error.message}`);
+      throw new Error('Database error during category reactivation');
+    }
+  }
+
 }

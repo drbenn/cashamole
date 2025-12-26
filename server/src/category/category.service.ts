@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { CategoryQueryService } from './category-query.service'
 import { CreateCategoryDto, CategoryDto, ReorderCategoriesDto, UpdateCategoryDto, CategoryUsageType, DeactivateCategoryDto } from '@common-types'
@@ -62,8 +62,14 @@ export class CategoryService {
     // 1. Logic Check: Prevent duplicate names for the same usage type
     const existing = await this.queryService.findByNameAndType(dto.name, dto.usage_type, userId)
     if (existing) {
-      this.logger.warn(`Category creation failed: Name "${dto.name}" already exists for type ${dto.usage_type}`, methodName)
-      throw new ConflictException(`You already have a category named "${dto.name}" for ${dto.usage_type}s.`)
+      if (!existing.active && existing.id) {
+        const updatedCategory = await this.queryService.reactivateCategory(existing.id, userId);
+        if (!updatedCategory) {
+          throw new InternalServerErrorException('Failed to reactivate existing category.');
+        }
+        return updatedCategory; // Returns the full object to the frontend
+      }
+      throw new ConflictException(`A category named "${dto.name}" already exists.`);
     }
 
     const id = uuidv4()

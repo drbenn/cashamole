@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { CategoryUsageType, CreateCategoryDto, DeactivateCategoryDto } from '@common-types'
+import type { CategoryDto, CategoryUsageType, CreateCategoryDto, DeactivateCategoryDto } from '@common-types'
 
 
 const categoryStore = useCategoryStore()
@@ -30,6 +30,9 @@ const props = defineProps<Props>();
 const categoryName = ref<string>('')
 const isCreateDialogOpen = ref<boolean>(false)
 const isViewDialogOpen = ref<boolean>(false)
+
+// state to track if we are in "Confirm Deactivate" mode
+const categoryToDeactivate = ref<CategoryDto | null>(null)
 
 const activeCategories = computed(() => {
   // Map the usage type to the specific store property
@@ -49,10 +52,20 @@ const handleSaveCategory = () => {
   categoryName.value = ''
 }
 
-const handleDeactivateCategory = (categoryId: string) => {
+
+const confirmDeactivation = (cat: CategoryDto) => {
+  categoryToDeactivate.value = cat
+}
+
+const cancelDeactivation = () => {
+  categoryToDeactivate.value = null
+}
+
+const finalDeactivateCategory = (categoryId: string) => {
   console.log(categoryId);
   const dto: DeactivateCategoryDto = { category_id: categoryId, usage_type: props.categoryUsageType }
   categoryStore.deactivateCategory(dto)
+  categoryToDeactivate.value = null
 }
 
 const isSubmitDisabled = computed(() => {
