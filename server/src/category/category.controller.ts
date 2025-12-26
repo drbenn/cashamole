@@ -52,7 +52,7 @@ export class CategoryController {
 
   @Patch('deactivate')
   async deactivateCategory(
-    @Body() dto: CommonTypes.DeactivateCategoryDto,
+    @Body() dto: CommonTypes.MigrateDeactivateCategoryDto,
     @Req() req: { user: CommonTypes.UserJwtGuardPayload },
   ): Promise<{ success: boolean }> {
     const verifiedUserId = req.user.userId

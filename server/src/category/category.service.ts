@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { CategoryQueryService } from './category-query.service'
-import { CreateCategoryDto, CategoryDto, ReorderCategoriesDto, UpdateCategoryDto, CategoryUsageType, DeactivateCategoryDto } from '@common-types'
+import { CreateCategoryDto, CategoryDto, ReorderCategoriesDto, UpdateCategoryDto, CategoryUsageType, MigrateDeactivateCategoryDto } from '@common-types'
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -101,32 +101,32 @@ export class CategoryService {
     return updated
   }
 
-  async deactivateCategory(dto: DeactivateCategoryDto, userId: string): Promise<{ success: boolean }> {
-      const { category_id, usage_type } = dto;
-      const methodName = CategoryService.name + '.deactivateCategory';
-      
-      this.logger.log(`Attempting to deactivate ${usage_type} category: ${category_id}`, methodName);
+  async deactivateCategory(dto: MigrateDeactivateCategoryDto, userId: string): Promise<{ success: boolean }> {
+    const { category_id, usage_type, migrate_target_category_id } = dto;
+    const methodName = CategoryService.name + '.deactivateCategory';
+    
+    this.logger.log(`Attempting to deactivate ${usage_type} category: ${category_id}`, methodName);
 
-      // 1. Fetch the category to check its status/name
-      const category = await this.queryService.getCategoryById(category_id, userId);
-      
-      if (!category) {
-        throw new NotFoundException('Category not found.');
-      }
-
-      // 2. Guard: Cannot deactivate the "Uncategorized" safety net
-      // We check name or a 'is_system' flag if you have one.
-      if (category.name.toLowerCase() === 'uncategorized') {
-        this.logger.warn(`User ${userId} attempted to deactivate the system fallback category.`, methodName);
-        throw new ConflictException('The "Uncategorized" category is a system requirement and cannot be deactivated.');
-      }
-
-      // 3. Hand off to the Query Service to find the fallback and migrate
-      await this.queryService.migrateAndDeactivate(category_id, usage_type, userId);
-      
-      this.logger.log(`Successfully migrated and deactivated category ${category_id}`, methodName);
-      return { success: true };
+    // 1. Fetch the category to check its status/name
+    const category = await this.queryService.getCategoryById(category_id, userId);
+    
+    if (!category) {
+      throw new NotFoundException('Category not found.');
     }
+
+    // 2. Guard: Cannot deactivate the "Uncategorized" safety net
+    // We check name or a 'is_system' flag if you have one.
+    if (category.name.toLowerCase() === 'uncategorized') {
+      this.logger.warn(`User ${userId} attempted to deactivate the system fallback category.`, methodName);
+      throw new ConflictException('The "Uncategorized" category is a system requirement and cannot be deactivated.');
+    }
+
+    // 3. Hand off to the Query Service to find the fallback and migrate
+    await this.queryService.migrateAndDeactivate(category_id, usage_type, migrate_target_category_id, userId);
+    
+    this.logger.log(`Successfully migrated and deactivated category ${category_id} to ${migrate_target_category_id}`, methodName);
+    return { success: true };
+  }
 
   async reorderCategories(dto: ReorderCategoriesDto, userId: string): Promise<{ success: boolean }> {
     const methodName = CategoryService.name + '.reorderCategories'

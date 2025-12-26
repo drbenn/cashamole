@@ -1,16 +1,16 @@
-import type { TransactionDto } from '@common-types'
+import type { MigrateDeactivateCategoryDto, TransactionDto } from '@common-types'
 import { defineStore } from 'pinia'
 // import { toast } from 'vue-sonner'
 // import type { ToastPayload } from '~/types/app.types';
 
-interface TransactionState {
+interface SnapshotState {
   transactions: TransactionDto[],
-  categorySuggestions: string[],
-  vendorSuggestions: Record<string, string[]>,
+  // categorySuggestions: string[],
+  // vendorSuggestions: Record<string, string[]>,
 }
 
-export const useTransactionStore = defineStore('transaction', {
-state: (): TransactionState => ({
+export const useSnapshotStore = defineStore('snapshot', {
+state: (): SnapshotState => ({
   transactions: [
       { id: '1', type: 'expense', transaction_date: new Date().toISOString(), category: 'Food', vendor: 'Taco Bell', amount: 12.5, note: '' },
       { id: '2', type: 'expense', transaction_date: new Date().toISOString(), category: 'Bills', vendor: 'Verizon', amount: 85.00, note: 'Monthly' }
@@ -25,21 +25,11 @@ state: (): TransactionState => ({
   // No getters needed for the toast system
 
   actions: {
-    async updateMigratedTransactionCategory(category_id: string, migrate_target_category_id: string) {
-      if (this.transactions && this.transactions.length) {
-        const trans: TransactionDto[] = this.transactions
-        trans.map((t: TransactionDto) => {
-          if (t.category_id === category_id) {
-            return {
-              ...t,
-              category_id: migrate_target_category_id
-            }
-          } else {
-            return t
-          }
-        })
-        return trans
-      }
+    async updateMigratedSnapshotCategory(dto: MigrateDeactivateCategoryDto) {
+      const { category_id, usage_type, migrate_target_category_id } = dto
+      console.log(category_id, usage_type, migrate_target_category_id);
+      
+
     },
     async fetchSuggestions() {
       // try {

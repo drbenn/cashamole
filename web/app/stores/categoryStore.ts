@@ -1,7 +1,9 @@
-import type { CategoryDto, CategoryUsageEnum, CreateCategoryDto, DeactivateCategoryDto, SetCategoriesDto } from '@common-types';
+import { CategoryUsageEnum, type CategoryDto, type CreateCategoryDto, type MigrateDeactivateCategoryDto, type SetCategoriesDto } from '@common-types';
 import { defineStore } from 'pinia'
 import { useCategoryService } from '~/services/useCategoryService'
 import { useAppStore } from '~/stores/appStore'
+import { useTransactionStore } from '~/stores/transactionStore'
+import { useSnapshotStore } from '~/stores/snapshotStore'
 
 
 
@@ -45,20 +47,32 @@ state: (): CategoryState => ({
         handleErrorToast(result.error)
       }
     },
-    async deactivateCategory(dto: DeactivateCategoryDto) {
+    async migrateThenDeactivateCategory(dto: MigrateDeactivateCategoryDto) {
       const { handleErrorToast, handleSuccessToast } = useAppStore()
       if (!dto.category_id) {
         handleErrorToast('Cannot Deactivate: no category id provided.')
         return
       }
-      const { deactivateCategory } = useCategoryService()
-      const result = await deactivateCategory(dto)
+      const { migrateThenDeactivateCategory } = useCategoryService()
+      const result = await migrateThenDeactivateCategory(dto)
       console.log('store restu: ', result);
       if (result.success) {
         handleSuccessToast(`${dto.usage_type} category deactivated`)
+        // remove category in state
         const categories: CategoryDto[] = this[dto.usage_type]
         const updatedCategories = categories.filter((cat: CategoryDto) => cat.id !== dto.category_id)
         this[dto.usage_type] = updatedCategories
+
+        // TODO: update transactions with migrated category id
+        if (dto.usage_type === CategoryUsageEnum.TRANSACTION) {
+          // todo
+          const { updateMigratedTransactionCategory } = useTransactionStore()
+          updateMigratedTransactionCategory(dto.category_id, dto.migrate_target_category_id)
+        } else if (dto.usage_type === CategoryUsageEnum.ASSET || dto.usage_type === CategoryUsageEnum.LIABILITY) {
+          // todo
+          const { updateMigratedSnapshotCategory } = useSnapshotStore()
+          updateMigratedSnapshotCategory(dto)
+        }
       } else {
         console.error(result)
         handleErrorToast(result.error)

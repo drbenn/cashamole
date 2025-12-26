@@ -1,4 +1,4 @@
-import { CategoryDto, UpdateCategoryDto } from '@common-types'
+import { CategoryDto, CategoryUsageType, UpdateCategoryDto } from '@common-types'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Pool } from 'pg'
@@ -135,15 +135,15 @@ export class CategoryQueryService {
 
   async migrateAndDeactivate(
     categoryId: string, 
-    usageType: 'transaction' | 'asset' | 'liability', 
-    userId: string
+    usageType: CategoryUsageType, 
+    migrateTargetCategoryId: string,
+    userId: string,
   ): Promise<void> {
     const client = await this.pgPool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // 1. Identify the table based on usageType
       const tableMap = {
         transaction: 'transactions',
         asset: 'snapshot_assets',
@@ -151,31 +151,35 @@ export class CategoryQueryService {
       };
       const targetTable = tableMap[usageType];
 
-      // 2. Find the "Uncategorized" ID for this specific user and type
-      const fallbackQuery = `
-        SELECT id FROM categories 
-        WHERE user_id = $1 
-          AND usage_type = $2 
-          AND name = 'Uncategorized' 
-          AND active = TRUE 
-        LIMIT 1;
-      `;
-      const fallbackRes = await client.query(fallbackQuery, [userId, usageType]);
-      const fallbackId = fallbackRes.rows[0]?.id;
+      // 1. Resolve Destination: If Target is empty/null, find the Uncategorized fallback
+      let finalTargetId = migrateTargetCategoryId;
 
-      if (!fallbackId) {
-        throw new Error(`Critical Error: No "Uncategorized" fallback found for ${usageType}`);
+      if (!finalTargetId) {
+        const fallbackQuery = `
+          SELECT id FROM categories 
+          WHERE user_id = $1 
+            AND usage_type = $2 
+            AND name ILIKE 'Uncategorized' 
+            AND active = TRUE 
+          LIMIT 1;
+        `;
+        const fallbackRes = await client.query(fallbackQuery, [userId, usageType]);
+        finalTargetId = fallbackRes.rows[0]?.id;
       }
 
-      // 3. Migrate all records to the fallback category
+      if (!finalTargetId) {
+        throw new Error(`Migration Failed: No valid target category found for ${usageType}`);
+      }
+
+      // 2. Perform Migration of records
       const migrateSql = `
         UPDATE ${targetTable}
         SET category_id = $1, updated_at = NOW()
         WHERE category_id = $2 AND user_id = $3;
       `;
-      await client.query(migrateSql, [fallbackId, categoryId, userId]);
+      await client.query(migrateSql, [finalTargetId, categoryId, userId]);
 
-      // 4. Deactivate the old category
+      // 3. Perform Deactivation
       const deactivateSql = `
         UPDATE categories 
         SET active = FALSE, updated_at = NOW() 
@@ -186,6 +190,7 @@ export class CategoryQueryService {
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK');
+      this.logger.error(`Migration/Deactivation failed for category ${categoryId}: ${error.message}`);
       throw error;
     } finally {
       client.release();

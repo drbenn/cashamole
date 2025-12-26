@@ -37,9 +37,10 @@ export interface ReorderCategoriesDto {
   categoryIds: string[]; // Ordered list of UUIDs
 }
 
-export interface DeactivateCategoryDto {
-  category_id: string
-  usage_type: CategoryUsageType 
+export interface MigrateDeactivateCategoryDto {
+  category_id: string                 // category being deactivated
+  usage_type: CategoryUsageType
+  migrate_target_category_id: string  // category to migrate deactivated categories to
 }
 
 export interface SetCategoriesDto {

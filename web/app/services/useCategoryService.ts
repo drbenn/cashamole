@@ -1,4 +1,4 @@
-import type { CreateCategoryDto, DeactivateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from '@common-types'
+import type { CreateCategoryDto, MigrateDeactivateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from '@common-types'
 import type { FetchError } from 'ofetch'
 import type { ApiResponse } from "~/types/app.types"
 
@@ -66,7 +66,7 @@ export const useCategoryService = () => {
     }
   }
 
-  const deactivateCategory = async (dto: DeactivateCategoryDto): Promise<ApiResponse> => {
+  const migrateThenDeactivateCategory = async (dto: MigrateDeactivateCategoryDto): Promise<ApiResponse> => {
     try {
       const response = await $fetch(`${apiBase}/deactivate`, {
         method: 'PATCH',
@@ -86,6 +86,6 @@ export const useCategoryService = () => {
     getUserCategories,
     updateCategory,
     reorderCategories,
-    deactivateCategory,
+    migrateThenDeactivateCategory,
   }
 }
